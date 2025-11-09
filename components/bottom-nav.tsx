@@ -21,6 +21,7 @@ import {
 interface BottomNavProps {
   currentPage: string;
   onNavigate: (page: string) => void;
+  cartCount?: number; // ✅ thêm dòng này
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
