@@ -144,145 +144,150 @@ export default function ChangePasswordPage({
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* Info Card */}
-        <View style={styles.infoCard}>
-          <Lock size={24} color="#06b6d4" />
-          <Text style={styles.infoText}>
-            Để bảo mật tài khoản, vui lòng sử dụng mật khẩu mạnh và không chia
-            sẻ với người khác.
-          </Text>
-        </View>
-
-        {/* Current Password */}
-        <View style={styles.fieldContainer}>
-          <Text style={styles.fieldLabel}>Mật khẩu hiện tại</Text>
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              value={currentPassword}
-              onChangeText={setCurrentPassword}
-              placeholder="Nhập mật khẩu hiện tại"
-              secureTextEntry={!showCurrent}
-              autoCapitalize="none"
-            />
-            <TouchableOpacity
-              style={styles.eyeButton}
-              onPress={() => setShowCurrent(!showCurrent)}
-            >
-              {showCurrent ? (
-                <Eye size={20} color="#6b7280" />
-              ) : (
-                <EyeOff size={20} color="#6b7280" />
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* New Password */}
-        <View style={styles.fieldContainer}>
-          <Text style={styles.fieldLabel}>Mật khẩu mới</Text>
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              value={newPassword}
-              onChangeText={setNewPassword}
-              placeholder="Nhập mật khẩu mới"
-              secureTextEntry={!showNew}
-              autoCapitalize="none"
-            />
-            <TouchableOpacity
-              style={styles.eyeButton}
-              onPress={() => setShowNew(!showNew)}
-            >
-              {showNew ? (
-                <Eye size={20} color="#6b7280" />
-              ) : (
-                <EyeOff size={20} color="#6b7280" />
-              )}
-            </TouchableOpacity>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.formCard}>
+          {/* Info Card */}
+          <View style={styles.infoCard}>
+            <Lock size={24} color="#06b6d4" />
+            <Text style={styles.infoText}>
+              Để bảo mật tài khoản, vui lòng sử dụng mật khẩu mạnh và không chia
+              sẻ với người khác.
+            </Text>
           </View>
 
-          {/* Password Requirements */}
-          {newPassword.length > 0 && (
-            <View style={styles.requirementsContainer}>
-              {passwordRequirements.map((req, idx) => (
-                <View key={idx} style={styles.requirementRow}>
-                  {req.met ? (
-                    <Check size={16} color="#16a34a" />
-                  ) : (
-                    <View style={styles.unmetDot} />
-                  )}
-                  <Text
-                    style={[
-                      styles.requirementText,
-                      req.met && styles.requirementTextMet,
-                    ]}
-                  >
-                    {req.text}
-                  </Text>
-                </View>
-              ))}
+          {/* Current Password */}
+          <View style={styles.fieldContainer}>
+            <Text style={styles.fieldLabel}>Mật khẩu hiện tại</Text>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                value={currentPassword}
+                onChangeText={setCurrentPassword}
+                placeholder="Nhập mật khẩu hiện tại"
+                secureTextEntry={!showCurrent}
+                autoCapitalize="none"
+              />
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={() => setShowCurrent(!showCurrent)}
+              >
+                {showCurrent ? (
+                  <Eye size={20} color="#6b7280" />
+                ) : (
+                  <EyeOff size={20} color="#6b7280" />
+                )}
+              </TouchableOpacity>
             </View>
-          )}
-        </View>
-
-        {/* Confirm Password */}
-        <View style={styles.fieldContainer}>
-          <Text style={styles.fieldLabel}>Xác nhận mật khẩu mới</Text>
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              placeholder="Nhập lại mật khẩu mới"
-              secureTextEntry={!showConfirm}
-              autoCapitalize="none"
-            />
-            <TouchableOpacity
-              style={styles.eyeButton}
-              onPress={() => setShowConfirm(!showConfirm)}
-            >
-              {showConfirm ? (
-                <Eye size={20} color="#6b7280" />
-              ) : (
-                <EyeOff size={20} color="#6b7280" />
-              )}
-            </TouchableOpacity>
           </View>
 
-          {confirmPassword.length > 0 && confirmPassword !== newPassword && (
-            <Text style={styles.errorText}>Mật khẩu không khớp</Text>
-          )}
-        </View>
+          {/* New Password */}
+          <View style={styles.fieldContainer}>
+            <Text style={styles.fieldLabel}>Mật khẩu mới</Text>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                value={newPassword}
+                onChangeText={setNewPassword}
+                placeholder="Nhập mật khẩu mới"
+                secureTextEntry={!showNew}
+                autoCapitalize="none"
+              />
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={() => setShowNew(!showNew)}
+              >
+                {showNew ? (
+                  <Eye size={20} color="#6b7280" />
+                ) : (
+                  <EyeOff size={20} color="#6b7280" />
+                )}
+              </TouchableOpacity>
+            </View>
 
-        {/* Submit Button */}
-        <TouchableOpacity
-          style={[
-            styles.submitButton,
-            (!isPasswordValid || loading) && styles.submitButtonDisabled,
-          ]}
-          onPress={handleChangePassword}
-          disabled={!isPasswordValid || loading}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text style={styles.submitButtonText}>Đổi mật khẩu</Text>
-          )}
-        </TouchableOpacity>
+            {/* Password Requirements */}
+            {newPassword.length > 0 && (
+              <View style={styles.requirementsContainer}>
+                {passwordRequirements.map((req, idx) => (
+                  <View key={idx} style={styles.requirementRow}>
+                    {req.met ? (
+                      <Check size={16} color="#16a34a" />
+                    ) : (
+                      <View style={styles.unmetDot} />
+                    )}
+                    <Text
+                      style={[
+                        styles.requirementText,
+                        req.met && styles.requirementTextMet,
+                      ]}
+                    >
+                      {req.text}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+
+          {/* Confirm Password */}
+          <View style={styles.fieldContainer}>
+            <Text style={styles.fieldLabel}>Xác nhận mật khẩu mới</Text>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                placeholder="Nhập lại mật khẩu mới"
+                secureTextEntry={!showConfirm}
+                autoCapitalize="none"
+              />
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={() => setShowConfirm(!showConfirm)}
+              >
+                {showConfirm ? (
+                  <Eye size={20} color="#6b7280" />
+                ) : (
+                  <EyeOff size={20} color="#6b7280" />
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {confirmPassword.length > 0 && confirmPassword !== newPassword && (
+              <Text style={styles.errorText}>Mật khẩu không khớp</Text>
+            )}
+          </View>
+
+          {/* Submit Button */}
+          <TouchableOpacity
+            style={[
+              styles.submitButton,
+              (!isPasswordValid || loading) && styles.submitButtonDisabled,
+            ]}
+            onPress={handleChangePassword}
+            disabled={!isPasswordValid || loading}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.submitButtonText}>Đổi mật khẩu</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
+  container: { flex: 1, backgroundColor: "#f3f4f6" },
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f9fafb",
+    backgroundColor: "#f3f4f6",
   },
 
   header: {
@@ -300,7 +305,26 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  content: { padding: 16, paddingBottom: 40 },
+  content: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 40,
+  },
+
+  formCard: {
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    borderRadius: 24,
+    padding: 32,
+    width: "100%",
+    maxWidth: 360,
+    alignSelf: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+  },
 
   infoCard: {
     backgroundColor: "#ecfeff",
@@ -323,15 +347,15 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "#f9fafb",
     borderWidth: 1,
     borderColor: "#e5e7eb",
-    borderRadius: 8,
+    borderRadius: 12,
   },
   input: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     fontSize: 15,
     color: "#111827",
   },
@@ -366,15 +390,22 @@ const styles = StyleSheet.create({
 
   submitButton: {
     backgroundColor: "#06b6d4",
-    paddingVertical: 14,
-    borderRadius: 8,
+    paddingVertical: 16,
+    borderRadius: 12,
     alignItems: "center",
     marginTop: 12,
+    shadowColor: "#06b6d4",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   submitButtonDisabled: {
-    backgroundColor: "#cbd5e1",
+    backgroundColor: "#9ca3af",
+    shadowOpacity: 0,
+    elevation: 0,
   },
-  submitButtonText: { fontSize: 15, fontWeight: "700", color: "#fff" },
+  submitButtonText: { fontSize: 16, fontWeight: "700", color: "#fff" },
 
   successCircle: {
     width: 80,

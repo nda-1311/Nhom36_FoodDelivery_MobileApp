@@ -73,7 +73,7 @@ export default function FoodDetailsPage({
   const displayName = data?.name || "Món ăn";
   const displayDesc =
     data?.description || "Món ăn ngon được chuẩn bị tươi mới!";
-  const basePrice = Number(data?.price) || 10;
+  const basePrice = Math.round(Number(data?.price) || 10000);
 
   // Xử lý ảnh
   let imageSource = { uri: "https://placehold.co/400x300" };
@@ -95,9 +95,11 @@ export default function FoodDetailsPage({
     );
   };
 
-  const priceSize = selectedSize === "L" ? 10 : selectedSize === "M" ? 5 : 0;
+  const priceSize =
+    selectedSize === "L" ? 10000 : selectedSize === "M" ? 5000 : 0;
   const priceToppings = toppings.reduce(
-    (sum, t) => sum + (t === "Corn" ? 2 : t === "Cheese Cheddar" ? 5 : 10),
+    (sum, t) =>
+      sum + (t === "Corn" ? 2000 : t === "Cheese Cheddar" ? 5000 : 10000),
     0
   );
   const totalPrice = (basePrice + priceSize + priceToppings) * quantity;

@@ -1,50 +1,60 @@
-# Welcome to your Expo app 👋
+# 🍔 Food Delivery App - Nhóm 36
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Ứng dụng giao đồ ăn được xây dựng bằng React Native + Expo + Supabase.
 
-## Get started
+## 📦 Công nghệ sử dụng
 
-1. Install dependencies
+- **React Native** - Framework mobile
+- **Expo** - Build & deploy tool
+- **Supabase** - Backend (Database + Auth)
+- **EmailJS** - Gửi email OTP
+- **TypeScript** - Type safety
+
+## 🚀 Cài đặt
+
+1. **Clone repository**
+
+   ```bash
+   git clone https://github.com/nda-1311/Nhom36_FoodDelivery_MobileApp.git
+   cd Nhom36_FoodDelivery_MobileApp
+   ```
+
+2. **Cài đặt dependencies**
 
    ```bash
    npm install
    ```
 
-2. Start the app
+3. **Cấu hình môi trường**
 
+   - Copy file `.env.example` thành `.env`
+   - Điền thông tin Supabase và EmailJS
+
+4. **Khởi chạy app**
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+## 📚 Hướng dẫn Setup
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- **[Setup Database & RPC Function](./SETUP_DATABASE_RPC.md)** - Cấu hình Supabase
+- **[Setup EmailJS](./SETUP_EMAILJS.md)** - Cấu hình gửi email OTP
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## ✨ Tính năng
 
-## Get a fresh project
+- ✅ Đăng nhập / Đăng ký
+- ✅ Quên mật khẩu với OTP qua email
+- ✅ Đổi mật khẩu
+- ✅ Tìm kiếm món ăn
+- ✅ Giỏ hàng & thanh toán
+- ✅ Lịch sử đơn hàng
+- ✅ Yêu thích món ăn
+- ✅ Chat với tài xế
 
-When you're ready, run:
+## 👥 Nhóm 36
 
-```bash
-npm run reset-project
-```
+Đồ án môn học - Mobile App Development
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+---
 
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Made with ❤️ by Nhóm 36

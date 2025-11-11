@@ -4,7 +4,6 @@ import { validateLoginForm } from "@/utils/validation";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   ImageBackground,
   KeyboardAvoidingView,
   Platform,
@@ -124,13 +123,15 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
             )}
           </TouchableOpacity>
 
+          <TouchableOpacity onPress={() => onNavigate("forgot-password")}>
+            <Text style={styles.forgotPasswordText}>Quên mật khẩu?</Text>
+          </TouchableOpacity>
+
           <Text style={styles.registerText}>
             Chưa có tài khoản?{" "}
             <Text
               style={styles.registerLink}
-              onPress={() =>
-                Alert.alert("Thông báo", "Tính năng đăng ký đang phát triển!")
-              }
+              onPress={() => onNavigate("register")}
             >
               Đăng ký ngay
             </Text>
@@ -219,4 +220,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   registerLink: { color: "#06b6d4", fontWeight: "600" },
+  forgotPasswordText: {
+    textAlign: "center",
+    color: "#06b6d4",
+    marginTop: 12,
+    fontSize: 13,
+    fontWeight: "600",
+  },
 });

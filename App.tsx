@@ -18,6 +18,7 @@ import ChatPage from "@/app/pages/ChatPage";
 import CheckoutPage from "@/app/pages/CheckoutPage";
 import FavoritesPage from "@/app/pages/FavoritesPage";
 import FoodDetailsPage from "@/app/pages/FoodDetailsPage";
+import ForgotPasswordPage from "@/app/pages/ForgotPasswordPage";
 import HistoryPage from "@/app/pages/HistoryPage";
 import HomePage from "@/app/pages/HomePage";
 import InboxPage from "@/app/pages/InboxPage";
@@ -30,6 +31,7 @@ import OrderDetailPage from "@/app/pages/OrderDetailPage";
 import OrderTrackingPage from "@/app/pages/OrderTrackingPage";
 import ProfilePage from "@/app/pages/ProfilePage";
 import RatingPage from "@/app/pages/RatingPage";
+import RegisterPage from "@/app/pages/RegisterPage";
 import RestaurantPage from "@/app/pages/RestaurantPage";
 import SearchPage from "@/app/pages/SearchPage";
 import TrackOrderPage from "@/app/pages/TrackOrderPage";
@@ -44,6 +46,8 @@ import { CartProvider, useCart } from "./store/cart-context"; // ✅ dùng conte
 // ==============================
 type PageType =
   | "login"
+  | "register"
+  | "forgot-password"
   | "logout"
   | "home"
   | "search"
@@ -93,8 +97,14 @@ function AppContent() {
   useEffect(() => {
     const checkSession = async () => {
       setPage({ current: "loading" });
+
       const { data: sessionData } = await supabase.auth.getSession();
       const session = sessionData?.session;
+
+      console.log("Session check:", {
+        hasSession: !!session,
+        user: session?.user?.email,
+      });
 
       if (!session || !session.user) {
         setUser(null);
@@ -110,7 +120,9 @@ function AppContent() {
 
     // 🔁 Theo dõi thay đổi trạng thái đăng nhập
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
+        console.log("Auth event:", event);
+
         if (session?.user) {
           setUser(session.user);
           setPage({ current: "home" });
@@ -151,6 +163,10 @@ function AppContent() {
         );
       case "login":
         return <LoginPage onNavigate={navigateTo} />;
+      case "register":
+        return <RegisterPage onNavigate={navigateTo} />;
+      case "forgot-password":
+        return <ForgotPasswordPage onNavigate={navigateTo} />;
       case "logout":
         return <LogoutPage onNavigate={navigateTo} />;
       case "home":
@@ -247,6 +263,8 @@ function AppContent() {
   // Ẩn bottom nav ở các trang đặc biệt
   const hideBottomNav =
     page.current === "login" ||
+    page.current === "register" ||
+    page.current === "forgot-password" ||
     page.current === "logout" ||
     page.current === "loading";
 
