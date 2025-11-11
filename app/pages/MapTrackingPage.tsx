@@ -62,7 +62,7 @@ export default function MapTrackingPage({ onNavigate }: MapTrackingPageProps) {
   };
 
   const deliveryInfo = {
-    time: "15-20 mins",
+    time: "15-20 phút",
     address: "201 Katlian No.21 Street",
   };
 
@@ -70,7 +70,7 @@ export default function MapTrackingPage({ onNavigate }: MapTrackingPageProps) {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Delivery Tracking</Text>
+        <Text style={styles.headerTitle}>Theo dõi giao hàng</Text>
       </View>
 
       {/* Map Simulation */}
@@ -126,7 +126,7 @@ export default function MapTrackingPage({ onNavigate }: MapTrackingPageProps) {
           <View style={styles.infoRow}>
             <Clock size={20} color="#06b6d4" />
             <View>
-              <Text style={styles.label}>Delivery time</Text>
+              <Text style={styles.label}>Thời gian giao hàng</Text>
               <Text style={styles.infoText}>{deliveryInfo.time}</Text>
             </View>
           </View>
@@ -134,7 +134,7 @@ export default function MapTrackingPage({ onNavigate }: MapTrackingPageProps) {
           <View style={styles.infoRow}>
             <MapPin size={20} color="#06b6d4" />
             <View>
-              <Text style={styles.label}>Delivery address</Text>
+              <Text style={styles.label}>Địa chỉ giao hàng</Text>
               <Text style={styles.infoText}>{deliveryInfo.address}</Text>
             </View>
           </View>
@@ -148,7 +148,7 @@ export default function MapTrackingPage({ onNavigate }: MapTrackingPageProps) {
             </View>
             <View>
               <Text style={styles.driverName}>{driver.name}</Text>
-              <Text style={styles.driverSub}>Food Delivery</Text>
+              <Text style={styles.driverSub}>Giao hàng</Text>
             </View>
           </View>
           <View style={{ flexDirection: "row", gap: 8 }}>
@@ -171,13 +171,13 @@ export default function MapTrackingPage({ onNavigate }: MapTrackingPageProps) {
       {/* Action Buttons */}
       <View style={styles.footer}>
         <TouchableOpacity style={styles.helpBtn}>
-          <Text style={styles.helpText}>Need help?</Text>
+          <Text style={styles.helpText}>Cần trợ giúp?</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => onNavigate("home")}
           style={styles.backBtn}
         >
-          <Text style={styles.backText}>Back to Home</Text>
+          <Text style={styles.backText}>Về trang chủ</Text>
         </TouchableOpacity>
       </View>
     </View>

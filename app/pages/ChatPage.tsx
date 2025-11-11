@@ -44,10 +44,11 @@ export default function ChatPage({
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
+  const channelRef = useRef<any>(null); // Store channel reference for cleanup
 
   // Default demo data if no conversation provided
   const otherUser = conversationData || {
-    id: "demo-driver",
+    id: "00000000-0000-0000-0000-000000000001", // Use valid UUID format
     name: "John Cooper",
     role: "driver",
     avatar: "J",
@@ -58,7 +59,9 @@ export default function ChatPage({
     initializeChat();
     return () => {
       // Cleanup subscriptions
-      supabase.removeAllChannels();
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
     };
   }, []);
 
@@ -183,7 +186,13 @@ export default function ChatPage({
   };
 
   const subscribeToMessages = (convId: string) => {
-    const channel = supabase
+    // Unsubscribe from previous channel if exists
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
+
+    // Create new channel subscription
+    channelRef.current = supabase
       .channel(`messages:${convId}`)
       .on(
         "postgres_changes",
@@ -194,13 +203,16 @@ export default function ChatPage({
           filter: `conversation_id=eq.${convId}`,
         },
         (payload) => {
+          console.log("New message received:", payload.new);
           setMessages((prev) => [...prev, payload.new as Message]);
           setTimeout(() => {
             scrollViewRef.current?.scrollToEnd({ animated: true });
           }, 100);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("Subscription status:", status);
+      });
   };
 
   const markMessagesAsRead = async (convId: string, userId: string) => {
@@ -496,9 +508,9 @@ const styles = StyleSheet.create({
   bubbleAvatarText: { color: COLORS.white, fontWeight: "700" },
   userAvatarText: { color: COLORS.text },
 
-  footer: { 
-    borderTopWidth: 1, 
-    borderTopColor: COLORS.border, 
+  footer: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
     padding: 10,
     paddingBottom: SPACING.bottomNav,
     backgroundColor: COLORS.white,

@@ -1,17 +1,5 @@
-import { LinearGradient } from "expo-linear-gradient";
-import {
-  ArrowLeft,
-  CheckCircle,
-  ChefHat,
-  Clock,
-  HelpCircle,
-  MapPin,
-  MessageSquare,
-  Package,
-  Phone,
-  Truck,
-} from "lucide-react-native";
-import React, { useEffect, useState } from "react";
+﻿import { CheckCircle, Search } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -19,8 +7,7 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from "react-native";
-import { COLORS, RADIUS, SHADOWS } from "../../constants/design";
+} from 'react-native';
 
 interface OrderTrackingPageProps {
   onNavigate: (page: string, data?: any) => void;
@@ -29,248 +16,97 @@ interface OrderTrackingPageProps {
 export default function OrderTrackingPage({
   onNavigate,
 }: OrderTrackingPageProps) {
-  const [progress, setProgress] = useState(0);
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentStep, setCurrentStep] = useState(1);
 
+  // Auto-progress through steps (faster: 1.5 seconds per step)
   useEffect(() => {
     const timer = setInterval(() => {
-      setProgress((prev) => {
-        if (prev < 100) {
-          const newProgress = prev + 1;
-          setCurrentStep(Math.floor(newProgress / 20));
-          return newProgress;
+      setCurrentStep((prev) => {
+        if (prev < 4) {
+          return prev + 1;
+        } else {
+          // When complete, navigate to map tracking
+          clearInterval(timer);
+          setTimeout(() => {
+            onNavigate('map-tracking');
+          }, 1000);
+          return prev;
         }
-        return 100;
       });
-    }, 50);
+    }, 1500); // Change step every 1.5 seconds (faster)
+
     return () => clearInterval(timer);
-  }, []);
+  }, [onNavigate]);
 
   const steps = [
-    {
-      name: "Đơn hàng\nđã xác nhận",
-      icon: Package,
-      color: COLORS.primary,
-      completed: progress > 0,
-    },
-    {
-      name: "Đang\nchuẩn bị",
-      icon: ChefHat,
-      color: COLORS.accent,
-      completed: progress > 25,
-    },
-    {
-      name: "Đang\ngiao hàng",
-      icon: Truck,
-      color: COLORS.secondary,
-      completed: progress > 50,
-    },
-    {
-      name: "Sắp\ntới nơi",
-      icon: MapPin,
-      color: "#8b5cf6",
-      completed: progress > 75,
-    },
+    { name: 'Xác nhận\nđơn hàng', completed: currentStep >= 0 },
+    { name: 'Tìm\ntài xế', completed: currentStep >= 1 },
+    { name: 'Chuẩn bị\nmón ăn', completed: currentStep >= 2 },
+    { name: 'Đang\ngiao', completed: currentStep >= 3 },
+    { name: 'Sắp\nđến', completed: currentStep >= 4 },
   ];
 
-  const driver = {
-    name: "John Cooper",
-    rating: 4.8,
-    reviews: 342,
-    vehicle: "Honda Civic - ABC 1234",
-    phone: "+1 (555) 123-4567",
-    avatar: "J",
-  };
-
-  const getStatusMessage = () => {
-    if (progress < 25) return "Đơn hàng đã xác nhận! Đang chuẩn bị món ăn...";
-    if (progress < 50) return "Nhà hàng đang chuẩn bị món ăn của bạn";
-    if (progress < 75) return "Tài xế đang trên đường giao hàng";
-    if (progress < 100) return "Tài xế sắp đến nơi!";
-    return "Đơn hàng đã được giao thành công!";
+  const getStatusTitle = () => {
+    switch (currentStep) {
+      case 0: return 'Đơn hàng đã được xác nhận';
+      case 1: return 'Đang tìm tài xế';
+      case 2: return 'Đang chuẩn bị món ăn';
+      case 3: return 'Tài xế đang trên đường';
+      case 4: return 'Sắp đến nơi';
+      default: return 'Đơn hàng đã xác nhận';
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Gradient Header */}
-      <LinearGradient
-        colors={COLORS.gradientPrimary as any}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.header}
-      >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => onNavigate("home")}
-        >
-          <ArrowLeft size={22} color="#ffffff" />
-        </TouchableOpacity>
-        <View style={{ flex: 1, alignItems: "center" }}>
-          <Text style={styles.headerTitle}>Theo dõi đơn hàng</Text>
-          <Text style={styles.orderId}>Đơn hàng #12345</Text>
-        </View>
-        <View style={{ width: 40 }} />
-      </LinearGradient>
-
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Status Card */}
-        <View style={styles.statusCard}>
-          <LinearGradient
-            colors={COLORS.gradientPrimary as any}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.statusIcon}
-          >
-            <CheckCircle size={40} color="#ffffff" strokeWidth={2.5} />
-          </LinearGradient>
-          <Text style={styles.statusTitle}>{getStatusMessage()}</Text>
-          <Text style={styles.statusSubtitle}>
-            Chúng tôi sẽ thông báo khi có thay đổi trạng thái
-          </Text>
+        <View style={styles.statusIcon}>
+          <CheckCircle size={60} color='#06B6D4' strokeWidth={2} />
         </View>
 
-        {/* Timeline Steps */}
-        <View style={styles.timelineCard}>
-          <Text style={styles.sectionTitle}>Tiến trình đơn hàng</Text>
+        <Text style={styles.statusTitle}>Đơn hàng đã xác nhận</Text>
+        <Text style={styles.mainTitle}>{getStatusTitle()}</Text>
 
-          {steps.map((step, idx) => {
-            const Icon = step.icon;
-            const isCompleted = step.completed;
-            const isLast = idx === steps.length - 1;
+        <View style={styles.searchIcon}>
+          <Search size={80} color='#06B6D4' strokeWidth={2.5} />
+        </View>
 
-            return (
-              <View key={idx}>
-                <View style={styles.timelineRow}>
-                  <View style={styles.timelineLeft}>
-                    <View
-                      style={[
-                        styles.timelineIconCircle,
-                        isCompleted && { backgroundColor: step.color },
-                        !isCompleted && styles.timelineIconInactive,
-                      ]}
-                    >
-                      <Icon
-                        size={20}
-                        color={isCompleted ? "#ffffff" : COLORS.textLight}
-                        strokeWidth={2}
-                      />
-                    </View>
-                    {!isLast && (
-                      <View
-                        style={[
-                          styles.timelineLine,
-                          isCompleted && { backgroundColor: step.color },
-                        ]}
-                      />
-                    )}
-                  </View>
-                  <View style={styles.timelineContent}>
-                    <Text
-                      style={[
-                        styles.timelineLabel,
-                        isCompleted && styles.timelineLabelActive,
-                      ]}
-                    >
-                      {step.name.replace("\n", " ")}
-                    </Text>
-                    {isCompleted && idx === currentStep && (
-                      <Text style={styles.timelineTime}>Vừa xong</Text>
-                    )}
-                  </View>
-                </View>
+        <View style={styles.stepsContainer}>
+          {steps.map((step, idx) => (
+            <View key={idx} style={styles.stepWrapper}>
+              <View style={styles.stepItem}>
+                <View
+                  style={[
+                    styles.stepDot,
+                    step.completed && styles.stepDotActive,
+                  ]}
+                />
+                <Text style={styles.stepText}>{step.name}</Text>
               </View>
-            );
-          })}
+              {idx < steps.length - 1 && (
+                <View
+                  style={[
+                    styles.stepLine,
+                    steps[idx + 1].completed && styles.stepLineActive,
+                  ]}
+                />
+              )}
+            </View>
+          ))}
         </View>
 
-        {/* Progress Bar */}
-        <View style={styles.progressCard}>
-          <View style={styles.progressHeader}>
-            <Text style={styles.progressLabel}>Tiến độ tổng thể</Text>
-            <Text style={styles.progressPercent}>{Math.round(progress)}%</Text>
-          </View>
-          <View style={styles.progressBarContainer}>
-            <LinearGradient
-              colors={COLORS.gradientPrimary as any}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={[styles.progressBarFill, { width: `${progress}%` }]}
-            />
-          </View>
-        </View>
-
-        {/* Estimated Delivery */}
-        {progress < 100 && (
-          <View style={styles.estimateCard}>
-            <View style={styles.estimateIconCircle}>
-              <Clock size={20} color={COLORS.primary} strokeWidth={2.5} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.estimateTitle}>
-                Thời gian giao hàng dự kiến
-              </Text>
-              <Text style={styles.estimateTime}>Đến trong 15-20 phút</Text>
-            </View>
-          </View>
-        )}
-
-        {/* Driver Info */}
-        {progress > 25 && (
-          <View style={styles.driverCard}>
-            <Text style={styles.sectionTitle}>Tài xế của bạn</Text>
-
-            <View style={styles.driverRow}>
-              <LinearGradient
-                colors={COLORS.gradientPrimary as any}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.driverAvatar}
-              >
-                <Text style={styles.avatarText}>{driver.avatar}</Text>
-              </LinearGradient>
-
-              <View style={styles.driverInfo}>
-                <Text style={styles.driverName}>{driver.name}</Text>
-                <Text style={styles.driverRating}>
-                  ⭐ {driver.rating} • {driver.reviews} reviews
-                </Text>
-                <Text style={styles.vehicleText}>{driver.vehicle}</Text>
-              </View>
-            </View>
-
-            <View style={styles.driverActions}>
-              <TouchableOpacity style={styles.callButton}>
-                <View style={styles.callIconCircle}>
-                  <Phone size={18} color={COLORS.primary} strokeWidth={2.5} />
-                </View>
-                <Text style={styles.callText}>Gọi tài xế</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.chatButton}
-                onPress={() => onNavigate("chat")}
-              >
-                <LinearGradient
-                  colors={COLORS.gradientPrimary as any}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.chatGradient}
-                >
-                  <MessageSquare size={18} color="#ffffff" strokeWidth={2.5} />
-                  <Text style={styles.chatText}>Nhắn tin</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-
-        {/* Help Button */}
         <TouchableOpacity style={styles.helpButton}>
-          <HelpCircle size={20} color={COLORS.primary} strokeWidth={2.5} />
-          <Text style={styles.helpText}>Cần trợ giúp?</Text>
+          <Text style={styles.helpButtonText}>Cần trợ giúp?</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.cancelButton}
+          onPress={() => onNavigate('home')}
+        >
+          <Text style={styles.cancelButtonText}>✕ Hủy đơn</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -280,303 +116,94 @@ export default function OrderTrackingPage({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#FFFFFF',
   },
-
-  // Header
-  header: {
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-    paddingTop: 50,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: RADIUS.full,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    color: "#ffffff",
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  orderId: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 13,
-    marginTop: 4,
-  },
-
   scrollContent: {
-    padding: 16,
-    paddingBottom: 120,
-  },
-
-  // Status Card
-  statusCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.l,
     padding: 24,
-    alignItems: "center",
-    marginBottom: 16,
-    ...SHADOWS.medium,
+    alignItems: 'center',
+    paddingTop: 60,
   },
   statusIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: RADIUS.full,
-    alignItems: "center",
-    justifyContent: "center",
     marginBottom: 16,
-    ...SHADOWS.small,
   },
   statusTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: COLORS.text,
-    textAlign: "center",
-    marginBottom: 6,
-  },
-  statusSubtitle: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    textAlign: "center",
-  },
-
-  // Timeline
-  timelineCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.l,
-    padding: 20,
-    marginBottom: 16,
-    ...SHADOWS.small,
-  },
-  sectionTitle: {
     fontSize: 16,
-    fontWeight: "700",
-    color: COLORS.text,
-    marginBottom: 20,
+    color: '#6B7280',
+    marginBottom: 8,
   },
-  timelineRow: {
-    flexDirection: "row",
-    marginBottom: 4,
+  mainTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 32,
   },
-  timelineLeft: {
-    alignItems: "center",
-    marginRight: 16,
+  searchIcon: {
+    marginBottom: 40,
   },
-  timelineIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: RADIUS.full,
-    alignItems: "center",
-    justifyContent: "center",
-    ...SHADOWS.small,
+  stepsContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 40,
+    paddingHorizontal: 8,
   },
-  timelineIconInactive: {
-    backgroundColor: COLORS.border,
-  },
-  timelineLine: {
-    width: 3,
+  stepWrapper: {
     flex: 1,
-    backgroundColor: COLORS.border,
-    marginVertical: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  timelineContent: {
+  stepItem: {
+    alignItems: 'center',
     flex: 1,
-    paddingTop: 8,
-    paddingBottom: 16,
   },
-  timelineLabel: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: COLORS.textSecondary,
-    marginBottom: 2,
+  stepDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#E5E7EB',
+    marginBottom: 8,
   },
-  timelineLabelActive: {
-    color: COLORS.text,
-    fontWeight: "700",
+  stepDotActive: {
+    backgroundColor: '#06B6D4',
   },
-  timelineTime: {
-    fontSize: 12,
-    color: COLORS.textLight,
+  stepText: {
+    fontSize: 11,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 14,
   },
-
-  // Progress Card
-  progressCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.l,
-    padding: 20,
-    marginBottom: 16,
-    ...SHADOWS.small,
+  stepLine: {
+    width: 40,
+    height: 2,
+    backgroundColor: '#E5E7EB',
+    position: 'absolute',
+    left: '50%',
+    top: 6,
   },
-  progressHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  stepLineActive: {
+    backgroundColor: '#06B6D4',
+  },
+  helpButton: {
+    width: '100%',
+    borderWidth: 2,
+    borderColor: '#06B6D4',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
     marginBottom: 12,
   },
-  progressLabel: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: COLORS.text,
+  helpButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#06B6D4',
   },
-  progressPercent: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: COLORS.primary,
-  },
-  progressBarContainer: {
-    width: "100%",
-    height: 10,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.border,
-    overflow: "hidden",
-  },
-  progressBarFill: {
-    height: "100%",
-    borderRadius: RADIUS.full,
-  },
-
-  // Estimate Card
-  estimateCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.l,
-    padding: 16,
-    marginBottom: 16,
-    ...SHADOWS.small,
-  },
-  estimateIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: RADIUS.full,
-    backgroundColor: `${COLORS.primary}15`,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  estimateTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: COLORS.text,
-    marginBottom: 4,
-  },
-  estimateTime: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-  },
-
-  // Driver Card
-  driverCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.l,
-    padding: 20,
-    marginBottom: 16,
-    ...SHADOWS.medium,
-  },
-  driverRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  driverAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: RADIUS.full,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-    ...SHADOWS.small,
-  },
-  avatarText: {
-    color: "#ffffff",
-    fontWeight: "700",
-    fontSize: 24,
-  },
-  driverInfo: {
-    flex: 1,
-  },
-  driverName: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: COLORS.text,
-    marginBottom: 4,
-  },
-  driverRating: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    marginBottom: 2,
-  },
-  vehicleText: {
-    fontSize: 12,
-    color: COLORS.textLight,
-  },
-  driverActions: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  callButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: `${COLORS.primary}15`,
-    paddingVertical: 12,
-    borderRadius: RADIUS.m,
-    gap: 8,
-  },
-  callIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.surface,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  callText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: COLORS.primary,
-  },
-  chatButton: {
-    flex: 1,
-    borderRadius: RADIUS.m,
-    overflow: "hidden",
-    ...SHADOWS.small,
-  },
-  chatGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    gap: 8,
-  },
-  chatText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#ffffff",
-  },
-
-  // Help Button
-  helpButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: COLORS.surface,
+  cancelButton: {
+    width: '100%',
     paddingVertical: 14,
-    borderRadius: RADIUS.l,
-    gap: 8,
-    ...SHADOWS.small,
+    alignItems: 'center',
   },
-  helpText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: COLORS.primary,
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#9CA3AF',
   },
 });

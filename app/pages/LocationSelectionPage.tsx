@@ -27,16 +27,16 @@ export default function LocationSelectionPage({
   const [isEditing, setIsEditing] = useState(false);
 
   const locationTypes = [
-    { id: "home", label: "Home", icon: Home },
-    { id: "work", label: "Work", icon: Briefcase },
-    { id: "other", label: "Other", icon: MoreHorizontal },
+    { id: "home", label: "Nhà", icon: Home },
+    { id: "work", label: "Công ty", icon: Briefcase },
+    { id: "other", label: "Khác", icon: MoreHorizontal },
   ];
 
   return (
     <View style={{ flex: 1, backgroundColor: "#fff" }}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerText}>Select location</Text>
+        <Text style={styles.headerText}>Chọn địa chỉ</Text>
       </View>
 
       {/* Map simulation */}
@@ -60,7 +60,7 @@ export default function LocationSelectionPage({
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         {/* Address */}
         <View style={{ marginBottom: 16 }}>
-          <Text style={styles.label}>Address</Text>
+          <Text style={styles.label}>Địa chỉ</Text>
           <View style={styles.inputContainer}>
             <MapPin size={20} color="#06b6d4" />
             {isEditing ? (
@@ -81,7 +81,7 @@ export default function LocationSelectionPage({
 
         {/* Location Type */}
         <View style={{ marginBottom: 16 }}>
-          <Text style={styles.label}>Location type</Text>
+          <Text style={styles.label}>Loại địa chỉ</Text>
           {locationTypes.map((type) => {
             const Icon = type.icon;
             const selected = selectedType === type.id;
@@ -120,7 +120,7 @@ export default function LocationSelectionPage({
           }
           style={styles.confirmBtn}
         >
-          <Text style={styles.confirmText}>Confirm</Text>
+          <Text style={styles.confirmText}>Xác nhận</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

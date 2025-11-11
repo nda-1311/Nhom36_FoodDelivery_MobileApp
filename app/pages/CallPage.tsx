@@ -1,5 +1,4 @@
-import { SPACING } from "@/constants/design";
-import { Mic, MicOff, Phone, Volume2, VolumeX } from "lucide-react-native";
+import { Mic, MicOff, PhoneOff, Volume2, VolumeX } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
   SafeAreaView,
@@ -30,85 +29,69 @@ export default function CallPage({ onNavigate = () => {} }: CallPageProps) {
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   };
 
-  const driver = {
-    name: "John Cooper",
-    avatar: "J",
-    rating: 4.8,
-  };
-
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Cuộc gọi với tài xế</Text>
-      </View>
-
       {/* Main Content */}
       <View style={styles.content}>
-        {/* Driver Info */}
-        <View style={styles.driverInfo}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{driver.avatar}</Text>
-          </View>
-          <Text style={styles.driverName}>{driver.name}</Text>
-          <Text style={styles.driverRating}>⭐ {driver.rating}</Text>
-        </View>
+        {/* Header Title */}
+        <Text style={styles.headerTitle}>Tài xế</Text>
 
         {/* Call Timer */}
         <Text style={styles.timer}>{formatTime(callTime)}</Text>
 
+        {/* Driver Avatar */}
+        <View style={styles.avatarContainer}>
+          <View style={styles.avatar}>
+            <View style={styles.avatarIcon}>
+              <View style={styles.personIcon}>
+                <View style={styles.personHead} />
+                <View style={styles.personBody} />
+              </View>
+            </View>
+          </View>
+        </View>
+
         {/* Control Buttons */}
         <View style={styles.controls}>
-          {/* Speaker */}
+          {/* Speaker Button */}
           <TouchableOpacity
             onPress={() => setIsSpeaker(!isSpeaker)}
-            style={[
-              styles.controlButton,
-              isSpeaker ? styles.activeButton : styles.inactiveButton,
-            ]}
+            style={styles.controlButton}
           >
-            {isSpeaker ? (
-              <Volume2 size={28} color={isSpeaker ? "#fff" : "#111"} />
-            ) : (
-              <VolumeX size={28} color={isSpeaker ? "#fff" : "#111"} />
-            )}
+            <View style={styles.controlIcon}>
+              {isSpeaker ? (
+                <Volume2 size={24} color="#4B5563" />
+              ) : (
+                <VolumeX size={24} color="#4B5563" />
+              )}
+            </View>
+            <Text style={styles.controlLabel}>Loa ngoài</Text>
           </TouchableOpacity>
 
-          {/* Mute */}
+          {/* Mute Button */}
           <TouchableOpacity
             onPress={() => setIsMuted(!isMuted)}
-            style={[
-              styles.controlButton,
-              isMuted ? styles.activeButton : styles.inactiveButton,
-            ]}
+            style={styles.controlButton}
           >
-            {isMuted ? (
-              <MicOff size={28} color={isMuted ? "#fff" : "#111"} />
-            ) : (
-              <Mic size={28} color={isMuted ? "#fff" : "#111"} />
-            )}
+            <View style={styles.controlIcon}>
+              {isMuted ? (
+                <MicOff size={24} color="#4B5563" />
+              ) : (
+                <Mic size={24} color="#4B5563" />
+              )}
+            </View>
+            <Text style={styles.controlLabel}>Tắt tiếng</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Status */}
-        <View style={styles.status}>
-          <Text style={styles.statusText}>
-            {isMuted ? "Micro đang tắt" : "Micro đang bật"}
-          </Text>
-          <Text style={styles.statusText}>
-            {isSpeaker ? "Loa ngoài đang bật" : "Loa ngoài đang tắt"}
-          </Text>
-        </View>
-      </View>
-
-      {/* Footer / End Call */}
-      <View style={styles.footer}>
+        {/* End Call Button */}
         <TouchableOpacity
-          onPress={() => onNavigate("chat")}
+          onPress={() => onNavigate("orderTracking")}
           style={styles.endCallButton}
         >
-          <Phone size={26} color="#fff" />
-          <Text style={styles.endCallText}>Kết thúc cuộc gọi</Text>
+          <View style={styles.endCallIcon}>
+            <PhoneOff size={28} color="#fff" />
+          </View>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -116,14 +99,10 @@ export default function CallPage({ onNavigate = () => {} }: CallPageProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
-  header: {
-    backgroundColor: "#06b6d4",
-    paddingVertical: 16,
-    alignItems: "center",
+  container: { 
+    flex: 1, 
+    backgroundColor: "#FFFFFF" 
   },
-  headerText: { color: "#fff", fontSize: 20, fontWeight: "700" },
-
   content: {
     flex: 1,
     justifyContent: "center",
@@ -131,73 +110,96 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
 
-  driverInfo: { alignItems: "center", marginBottom: 40 },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "#06b6d4",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
+  headerTitle: { 
+    fontSize: 28, 
+    fontWeight: "700", 
+    color: "#111827",
+    marginBottom: 12,
+    textAlign: "center"
   },
-  avatarText: { fontSize: 36, fontWeight: "700", color: "#fff" },
-  driverName: { fontSize: 22, fontWeight: "700", color: "#111827" },
-  driverRating: { color: "#6b7280", marginTop: 4 },
 
   timer: {
-    fontSize: 42,
-    fontWeight: "700",
-    color: "#06b6d4",
-    marginBottom: 40,
+    fontSize: 18,
+    fontWeight: "400",
+    color: "#6B7280",
+    marginBottom: 48,
     fontFamily: "monospace",
+  },
+
+  avatarContainer: { 
+    marginBottom: 80,
+    alignItems: "center"
+  },
+  avatar: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "#06B6D4",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarIcon: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  personIcon: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  personHead: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    marginBottom: 4,
+  },
+  personBody: {
+    width: 40,
+    height: 28,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    backgroundColor: "#FFFFFF",
   },
 
   controls: {
     flexDirection: "row",
-    gap: 30,
-    marginBottom: 40,
+    gap: 60,
+    marginBottom: 60,
   },
   controlButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  controlIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "#F3F4F6",
     justifyContent: "center",
     alignItems: "center",
+    marginBottom: 8,
   },
-  activeButton: {
-    backgroundColor: "#06b6d4",
-    elevation: 4,
-  },
-  inactiveButton: {
-    backgroundColor: "#e5e7eb",
+  controlLabel: { 
+    fontSize: 14, 
+    color: "#111827", 
+    fontWeight: "500" 
   },
 
-  status: { alignItems: "center", marginBottom: 40 },
-  statusText: { fontSize: 14, color: "#6b7280", marginVertical: 2 },
-
-  footer: { 
-    padding: 20,
-    paddingBottom: SPACING.bottomNav,
-  },
   endCallButton: {
-    flexDirection: "row",
-    backgroundColor: "#ef4444",
-    borderRadius: 40,
-    height: 64,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "#DC2626",
     justifyContent: "center",
     alignItems: "center",
-    gap: 8,
     shadowColor: "#000",
     shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 5,
   },
-  endCallText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "700",
-    marginLeft: 6,
+  endCallIcon: {
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
