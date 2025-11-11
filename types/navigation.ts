@@ -37,3 +37,11 @@ export interface SearchPageProps extends BasePageProps {
   initialQuery?: string;
 }
 export interface VoucherPageProps extends BasePageProps {}
+
+// Admin pages
+export interface AdminDashboardPageProps extends BasePageProps {}
+export interface AdminUsersPageProps extends BasePageProps {}
+export interface AdminOrdersPageProps extends BasePageProps {}
+export interface AdminRestaurantsPageProps extends BasePageProps {}
+export interface AdminFoodItemsPageProps extends BasePageProps {}
+export interface AdminStatisticsPageProps extends BasePageProps {}

@@ -1,19 +1,19 @@
-import React, { useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  TextInput,
-  StyleSheet,
-  ScrollView,
-} from "react-native";
-import {
-  MapPin,
+  Briefcase,
   Edit2,
   Home,
-  Briefcase,
+  MapPin,
   MoreHorizontal,
 } from "lucide-react-native";
+import React, { useState } from "react";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 interface LocationSelectionPageProps {
   onNavigate: (page: string, data?: any) => void;

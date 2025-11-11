@@ -1,4 +1,5 @@
 import { COLORS, RADIUS, SHADOWS } from "@/constants/design";
+import { useAdmin } from "@/hooks/useAdmin";
 import { supabase } from "@/lib/supabase/client";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -14,6 +15,7 @@ import {
   Mail,
   MapPin,
   Phone,
+  Shield,
   ShoppingBag,
   Star,
   User,
@@ -48,6 +50,7 @@ export default function AccountPage({ onNavigate, data }: AccountPageProps) {
   const [loading, setLoading] = useState(false);
   const [userLoading, setUserLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const { isAdmin } = useAdmin(); // Check if user is admin
   const [userInfo, setUserInfo] = useState<UserInfo>({
     name: "User",
     phone: "",
@@ -296,6 +299,27 @@ export default function AccountPage({ onNavigate, data }: AccountPageProps) {
       {/* Settings Menu */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Cài đặt</Text>
+
+        {/* Admin Dashboard - Only show if user is admin */}
+        {isAdmin && (
+          <TouchableOpacity
+            style={[styles.menuCard, styles.adminCard]}
+            onPress={() => onNavigate("admin-dashboard")}
+          >
+            <View
+              style={[
+                styles.menuIcon,
+                { backgroundColor: `${COLORS.primary}20` },
+              ]}
+            >
+              <Shield size={22} color={COLORS.primary} />
+            </View>
+            <Text style={[styles.menuLabel, styles.adminLabel]}>
+              Trang quản trị Admin
+            </Text>
+            <ChevronRight size={20} color={COLORS.primary} />
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity
           style={styles.menuCard}
@@ -605,6 +629,15 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     color: COLORS.text,
+  },
+  adminCard: {
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    backgroundColor: `${COLORS.primary}05`,
+  },
+  adminLabel: {
+    color: COLORS.primary,
+    fontWeight: "700",
   },
 
   // Logout

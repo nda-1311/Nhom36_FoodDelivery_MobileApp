@@ -21,6 +21,7 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [loginAsAdmin, setLoginAsAdmin] = useState(false); // ✅ Thêm state cho checkbox admin
 
   const validate = (): boolean => {
     const { valid, errors } = validateLoginForm({ email, password });
@@ -34,7 +35,7 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
     if (!validate()) return;
 
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -51,6 +52,66 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
       return;
     }
 
+    // ✅ Kiểm tra quyền admin sau khi đăng nhập thành công
+    if (data?.user) {
+      try {
+        console.log("Checking admin status for user:", data.user.id);
+
+        const { data: adminData, error: adminError } = await supabase
+          .from("admin_config")
+          .select("role")
+          .eq("user_id", data.user.id)
+          .maybeSingle();
+
+        console.log("Admin check result:", { adminData, adminError });
+
+        const isActuallyAdmin =
+          !adminError &&
+          adminData &&
+          ["admin", "super_admin", "moderator"].includes(adminData.role);
+
+        console.log(
+          "Is actually admin:",
+          isActuallyAdmin,
+          "Role:",
+          adminData?.role
+        );
+
+        // Nếu user chọn đăng nhập với quyền admin
+        if (loginAsAdmin) {
+          if (isActuallyAdmin) {
+            console.log("✅ Admin login detected, role:", adminData.role);
+            setLoading(false);
+            onNavigate("admin-dashboard");
+            return;
+          } else {
+            // User không có quyền admin nhưng chọn checkbox admin
+            console.log("❌ User has no admin rights");
+            setLoginError("Tài khoản này không có quyền Admin!");
+            setLoading(false);
+            await supabase.auth.signOut(); // Đăng xuất luôn
+            return;
+          }
+        } else {
+          // User không chọn checkbox admin → luôn vào trang home
+          console.log("Regular user login");
+          setLoading(false);
+          onNavigate("home");
+          return;
+        }
+      } catch (err) {
+        console.log("Admin check failed:", err);
+        if (loginAsAdmin) {
+          setLoginError("Không thể xác minh quyền Admin!");
+          setLoading(false);
+          await supabase.auth.signOut();
+          return;
+        }
+      }
+    }
+
+    // Fallback: User thường
+    console.log("Regular user login (fallback)");
     setLoading(false);
     onNavigate("home");
   };
@@ -101,6 +162,19 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
           {passwordError ? (
             <Text style={styles.errorText}>{passwordError}</Text>
           ) : null}
+
+          {/* ✅ Checkbox đăng nhập với quyền Admin */}
+          <TouchableOpacity
+            style={styles.checkboxContainer}
+            onPress={() => setLoginAsAdmin(!loginAsAdmin)}
+          >
+            <View
+              style={[styles.checkbox, loginAsAdmin && styles.checkboxChecked]}
+            >
+              {loginAsAdmin && <Text style={styles.checkmark}>✓</Text>}
+            </View>
+            <Text style={styles.checkboxLabel}>Đăng nhập với quyền Admin</Text>
+          </TouchableOpacity>
 
           {loginError ? (
             <Text style={[styles.errorText, styles.centerText]}>
@@ -199,6 +273,38 @@ const styles = StyleSheet.create({
   inputError: { borderColor: "#ef4444" },
   errorText: { color: "#ef4444", fontSize: 12, marginBottom: 4 },
   centerText: { textAlign: "center", marginTop: 4 },
+
+  // ✅ Checkbox styles
+  checkboxContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 12,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: "#06b6d4",
+    borderRadius: 4,
+    marginRight: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+  checkboxChecked: {
+    backgroundColor: "#06b6d4",
+  },
+  checkmark: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    color: "#374151",
+    fontWeight: "500",
+  },
+
   loginButton: {
     backgroundColor: "#06b6d4",
     borderRadius: 10,

@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from "react";
 import {
-  View,
+  Clock,
+  MapPin,
+  MessageSquare,
+  Navigation,
+  Phone,
+} from "lucide-react-native";
+import React, { useEffect, useState } from "react";
+import {
+  Animated,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  Animated,
+  View,
 } from "react-native";
-import {
-  MapPin,
-  Phone,
-  MessageSquare,
-  Clock,
-  Navigation,
-} from "lucide-react-native";
 
 interface MapTrackingPageProps {
   onNavigate: (page: string, data?: any) => void;

@@ -41,7 +41,15 @@ import SupportPage from "@/app/pages/SupportPage";
 import TrackOrderPage from "@/app/pages/TrackOrderPage";
 import VoucherPage from "@/app/pages/VoucherPage";
 
-// 🛒 Context & Components
+// 🔐 Admin pages
+import AdminDashboardPage from "@/app/pages/AdminDashboardPage";
+import AdminFoodItemsPage from "@/app/pages/AdminFoodItemsPage";
+import AdminOrdersPage from "@/app/pages/AdminOrdersPage";
+import AdminRestaurantsPage from "@/app/pages/AdminRestaurantsPage";
+import AdminStatisticsPage from "@/app/pages/AdminStatisticsPage";
+import AdminUsersPage from "@/app/pages/AdminUsersPage";
+
+// �🛒 Context & Components
 import BottomNav from "./components/bottom-nav";
 import { CartProvider, useCart } from "./store/cart-context"; // ✅ dùng context realtime thay vì useCartCount
 
@@ -80,7 +88,13 @@ type PageType =
   | "address-management"
   | "payment-method"
   | "notifications"
-  | "support";
+  | "support"
+  | "admin-dashboard"
+  | "admin-users"
+  | "admin-orders"
+  | "admin-restaurants"
+  | "admin-food-items"
+  | "admin-statistics";
 
 interface PageState {
   current: PageType;
@@ -117,24 +131,34 @@ function AppContent() {
       if (!session || !session.user) {
         setUser(null);
         setPage({ current: "login" });
+        setAuthChecking(false);
       } else {
         setUser(session.user);
+        // ✅ Khi reload app, mặc định đưa về home (user tự chọn checkbox nếu muốn vào admin)
         setPage({ current: "home" });
+        setAuthChecking(false);
       }
-      setAuthChecking(false);
     };
 
     checkSession();
 
     // 🔁 Theo dõi thay đổi trạng thái đăng nhập
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         console.log("Auth event:", event);
 
-        if (session?.user) {
+        // ✅ Chỉ xử lý khi đăng xuất hoặc đăng nhập mới
+        if (event === "SIGNED_OUT") {
+          setUser(null);
+          setPage({ current: "login" });
+        } else if (event === "SIGNED_IN" && session?.user) {
           setUser(session.user);
-          setPage({ current: "home" });
-        } else {
+          // Không tự động chuyển trang - để LoginPage xử lý
+        } else if (session?.user) {
+          // Chỉ cập nhật user, không đổi page
+          setUser(session.user);
+        } else if (!session?.user && event === "TOKEN_REFRESHED") {
+          // Token refresh failed - đăng xuất
           setUser(null);
           setPage({ current: "login" });
         }
@@ -255,6 +279,19 @@ function AppContent() {
         return <NotificationsPage onNavigate={navigateTo} />;
       case "support":
         return <SupportPage onNavigate={navigateTo} />;
+      // 🔐 Admin pages
+      case "admin-dashboard":
+        return <AdminDashboardPage onNavigate={navigateTo} />;
+      case "admin-users":
+        return <AdminUsersPage onNavigate={navigateTo} />;
+      case "admin-orders":
+        return <AdminOrdersPage onNavigate={navigateTo} />;
+      case "admin-restaurants":
+        return <AdminRestaurantsPage onNavigate={navigateTo} />;
+      case "admin-food-items":
+        return <AdminFoodItemsPage onNavigate={navigateTo} />;
+      case "admin-statistics":
+        return <AdminStatisticsPage onNavigate={navigateTo} />;
       default:
         return (
           <HomePage
@@ -276,13 +313,19 @@ function AppContent() {
     );
   }
 
-  // Ẩn bottom nav ở các trang đặc biệt
+  // Ẩn bottom nav ở các trang đặc biệt và các trang admin
   const hideBottomNav =
     page.current === "login" ||
     page.current === "register" ||
     page.current === "forgot-password" ||
     page.current === "logout" ||
-    page.current === "loading";
+    page.current === "loading" ||
+    page.current === "admin-dashboard" ||
+    page.current === "admin-users" ||
+    page.current === "admin-orders" ||
+    page.current === "admin-restaurants" ||
+    page.current === "admin-food-items" ||
+    page.current === "admin-statistics";
 
   return (
     <SafeAreaView style={styles.container}>

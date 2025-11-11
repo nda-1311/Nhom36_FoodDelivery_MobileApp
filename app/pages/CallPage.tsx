@@ -99,9 +99,9 @@ export default function CallPage({ onNavigate = () => {} }: CallPageProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: "#FFFFFF" 
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
   },
   content: {
     flex: 1,
@@ -110,12 +110,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
 
-  headerTitle: { 
-    fontSize: 28, 
-    fontWeight: "700", 
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "700",
     color: "#111827",
     marginBottom: 12,
-    textAlign: "center"
+    textAlign: "center",
   },
 
   timer: {
@@ -126,9 +126,9 @@ const styles = StyleSheet.create({
     fontFamily: "monospace",
   },
 
-  avatarContainer: { 
+  avatarContainer: {
     marginBottom: 80,
-    alignItems: "center"
+    alignItems: "center",
   },
   avatar: {
     width: 120,
@@ -179,10 +179,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
-  controlLabel: { 
-    fontSize: 14, 
-    color: "#111827", 
-    fontWeight: "500" 
+  controlLabel: {
+    fontSize: 14,
+    color: "#111827",
+    fontWeight: "500",
   },
 
   endCallButton: {
