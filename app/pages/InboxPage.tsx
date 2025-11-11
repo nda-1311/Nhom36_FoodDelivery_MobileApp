@@ -1,7 +1,10 @@
-import { COLORS } from "@/constants/design";
+import { COLORS, SPACING } from "@/constants/design";
+import { supabase } from "@/lib/supabase/client";
 import { ChevronLeft, MessageCircle, Phone } from "lucide-react-native";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  RefreshControl,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -14,53 +17,211 @@ interface InboxPageProps {
   onNavigate: (page: string, data?: any) => void;
 }
 
+interface Conversation {
+  id: string;
+  user_id: string;
+  other_user_id: string;
+  other_user_name: string;
+  other_user_role: string;
+  other_user_avatar: string;
+  order_id: string | null;
+  last_message: string;
+  last_message_time: string;
+  unread_count: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export default function InboxPage({ onNavigate }: InboxPageProps) {
-  const messages = [
-    {
-      id: 1,
-      name: "John Cooper",
-      role: "Food Delivery Driver",
-      lastMessage: "I'm on my way! 5 mins away",
-      time: "2 mins ago",
-      avatar: "J",
-      unread: true,
-      status: "active",
-      orderId: "ORD-2024-001",
-    },
-    {
-      id: 2,
-      name: "Bamsu Restaurant",
-      role: "Restaurant",
-      lastMessage: "Your order is being prepared",
-      time: "15 mins ago",
-      avatar: "B",
-      unread: false,
-      status: "online",
-      orderId: "ORD-2024-001",
-    },
-    {
-      id: 3,
-      name: "Support Team",
-      role: "Customer Support",
-      lastMessage: "How can we help you today?",
-      time: "1 hour ago",
-      avatar: "S",
-      unread: false,
-      status: "online",
-      orderId: null,
-    },
-    {
-      id: 4,
-      name: "Sarah Johnson",
-      role: "Previous Driver",
-      lastMessage: "Thanks for the 5-star rating!",
-      time: "Yesterday",
-      avatar: "S",
-      unread: false,
-      status: "offline",
-      orderId: "ORD-2024-000",
-    },
-  ];
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    loadConversations();
+    subscribeToConversations();
+
+    return () => {
+      supabase.removeAllChannels();
+    };
+  }, []);
+
+  const loadConversations = async (showRefresh = false) => {
+    try {
+      if (showRefresh) setRefreshing(true);
+      else setLoading(true);
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        // Show demo data if not authenticated
+        loadDemoConversations();
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("conversations")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .order("updated_at", { ascending: false });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setConversations(data);
+      } else {
+        loadDemoConversations();
+      }
+    } catch (error) {
+      console.error("Error loading conversations:", error);
+      loadDemoConversations();
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const loadDemoConversations = () => {
+    const demoData: Conversation[] = [
+      {
+        id: "demo-1",
+        user_id: "current-user",
+        other_user_id: "driver-1",
+        other_user_name: "John Cooper",
+        other_user_role: "driver",
+        other_user_avatar: "J",
+        order_id: "ORD-2024-001",
+        last_message: "Tôi đang trên đường đến! 5 phút nữa đến nơi",
+        last_message_time: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+        unread_count: 2,
+        status: "active",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      {
+        id: "demo-2",
+        user_id: "current-user",
+        other_user_id: "restaurant-1",
+        other_user_name: "Bamsu Restaurant",
+        other_user_role: "restaurant",
+        other_user_avatar: "B",
+        order_id: "ORD-2024-001",
+        last_message: "Đơn hàng của bạn đang được chuẩn bị",
+        last_message_time: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+        unread_count: 0,
+        status: "active",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    ];
+    setConversations(demoData);
+  };
+
+  const subscribeToConversations = async () => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      supabase
+        .channel("conversations-updates")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "conversations",
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            if (payload.eventType === "INSERT") {
+              setConversations((prev) => [
+                payload.new as Conversation,
+                ...prev,
+              ]);
+            } else if (payload.eventType === "UPDATE") {
+              setConversations((prev) =>
+                prev
+                  .map((conv) =>
+                    conv.id === payload.new.id
+                      ? (payload.new as Conversation)
+                      : conv
+                  )
+                  .sort(
+                    (a, b) =>
+                      new Date(b.updated_at).getTime() -
+                      new Date(a.updated_at).getTime()
+                  )
+              );
+            } else if (payload.eventType === "DELETE") {
+              setConversations((prev) =>
+                prev.filter((conv) => conv.id !== payload.old.id)
+              );
+            }
+          }
+        )
+        .subscribe();
+    } catch (error) {
+      console.error("Error subscribing to conversations:", error);
+    }
+  };
+
+  const formatTime = (dateString: string) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Vừa xong";
+    if (diffMins < 60) return `${diffMins} phút trước`;
+    if (diffHours < 24) return `${diffHours} giờ trước`;
+    if (diffDays === 1) return "Hôm qua";
+    if (diffDays < 7) return `${diffDays} ngày trước`;
+
+    return date.toLocaleDateString("vi-VN");
+  };
+
+  const getRoleText = (role: string) => {
+    const roleMap: { [key: string]: string } = {
+      driver: "Tài xế giao hàng",
+      restaurant: "Nhà hàng",
+      support: "Hỗ trợ khách hàng",
+      user: "Người dùng",
+    };
+    return roleMap[role] || role;
+  };
+
+  const getStatusColor = (role: string, unreadCount: number) => {
+    if (unreadCount > 0) return "active";
+    if (role === "driver") return "active";
+    return "online";
+  };
+
+  const handleOpenChat = (conversation: Conversation) => {
+    const chatData = {
+      id: conversation.other_user_id,
+      name: conversation.other_user_name,
+      role: conversation.other_user_role,
+      avatar: conversation.other_user_avatar,
+      orderId: conversation.order_id,
+    };
+    onNavigate("chat", chatData);
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -75,77 +236,124 @@ export default function InboxPage({ onNavigate }: InboxPageProps) {
       {/* Messages List */}
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: SPACING.bottomNav }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => loadConversations(true)}
+            colors={[COLORS.primary]}
+          />
+        }
       >
-        {messages.map((msg) => (
-          <TouchableOpacity
-            key={msg.id}
-            onPress={() => onNavigate("chat", msg)}
-            style={styles.messageCard}
-          >
-            <View style={styles.messageRow}>
-              {/* Avatar */}
-              <View style={styles.avatarWrapper}>
-                <View style={styles.avatarCircle}>
-                  <Text style={styles.avatarText}>{msg.avatar}</Text>
-                </View>
-                {msg.status === "active" && (
-                  <View style={[styles.statusDot, styles.statusActive]} />
-                )}
-                {msg.status === "online" && (
-                  <View style={[styles.statusDot, styles.statusOnline]} />
-                )}
-              </View>
-
-              {/* Content */}
-              <View style={styles.contentWrapper}>
-                <View style={styles.rowBetween}>
-                  <View>
-                    <Text
-                      style={[
-                        styles.name,
-                        msg.unread ? styles.textNormal : styles.textMuted,
-                      ]}
-                    >
-                      {msg.name}
-                    </Text>
-                    <Text style={styles.role}>{msg.role}</Text>
+        {conversations.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <MessageCircle size={64} color={COLORS.mediumGray} />
+            <Text style={styles.emptyText}>Chưa có tin nhắn nào</Text>
+            <Text style={styles.emptySubtext}>
+              Tin nhắn của bạn sẽ hiển thị ở đây
+            </Text>
+          </View>
+        ) : (
+          conversations.map((conv) => {
+            const status = getStatusColor(
+              conv.other_user_role,
+              conv.unread_count
+            );
+            return (
+              <TouchableOpacity
+                key={conv.id}
+                onPress={() => handleOpenChat(conv)}
+                style={styles.messageCard}
+              >
+                <View style={styles.messageRow}>
+                  {/* Avatar */}
+                  <View style={styles.avatarWrapper}>
+                    <View style={styles.avatarCircle}>
+                      <Text style={styles.avatarText}>
+                        {conv.other_user_avatar}
+                      </Text>
+                    </View>
+                    {status === "active" && (
+                      <View style={[styles.statusDot, styles.statusActive]} />
+                    )}
+                    {status === "online" && (
+                      <View style={[styles.statusDot, styles.statusOnline]} />
+                    )}
                   </View>
-                  <Text style={styles.time}>{msg.time}</Text>
+
+                  {/* Content */}
+                  <View style={styles.contentWrapper}>
+                    <View style={styles.rowBetween}>
+                      <View>
+                        <Text
+                          style={[
+                            styles.name,
+                            conv.unread_count > 0
+                              ? styles.textNormal
+                              : styles.textMuted,
+                          ]}
+                        >
+                          {conv.other_user_name}
+                        </Text>
+                        <Text style={styles.role}>
+                          {getRoleText(conv.other_user_role)}
+                        </Text>
+                      </View>
+                      <Text style={styles.time}>
+                        {formatTime(conv.last_message_time)}
+                      </Text>
+                    </View>
+
+                    <View style={styles.lastMessageRow}>
+                      <Text
+                        style={[
+                          styles.lastMessage,
+                          conv.unread_count > 0
+                            ? styles.textBold
+                            : styles.textMuted,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {conv.last_message || "Chưa có tin nhắn"}
+                      </Text>
+                      {conv.unread_count > 0 && (
+                        <View style={styles.unreadBadge}>
+                          <Text style={styles.unreadText}>
+                            {conv.unread_count}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {conv.order_id && (
+                      <Text style={styles.orderId}>
+                        Đơn hàng: {conv.order_id}
+                      </Text>
+                    )}
+                  </View>
                 </View>
 
-                <Text
-                  style={[
-                    styles.lastMessage,
-                    msg.unread ? styles.textBold : styles.textMuted,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {msg.lastMessage}
-                </Text>
-
-                {msg.orderId && (
-                  <Text style={styles.orderId}>{msg.orderId}</Text>
-                )}
-              </View>
-
-              {/* Unread Dot */}
-              {msg.unread && <View style={styles.unreadDot} />}
-            </View>
-
-            {/* Quick Actions */}
-            <View style={styles.actions}>
-              <TouchableOpacity style={styles.callButton}>
-                <Phone size={12} color={COLORS.success} />
-                <Text style={styles.callText}>Call</Text>
+                {/* Quick Actions */}
+                <View style={styles.actions}>
+                  <TouchableOpacity
+                    style={styles.callButton}
+                    onPress={() => onNavigate("call")}
+                  >
+                    <Phone size={12} color={COLORS.success} />
+                    <Text style={styles.callText}>Gọi</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.chatButton}
+                    onPress={() => handleOpenChat(conv)}
+                  >
+                    <MessageCircle size={12} color={COLORS.warning} />
+                    <Text style={styles.chatText}>Chat</Text>
+                  </TouchableOpacity>
+                </View>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.chatButton}>
-                <MessageCircle size={12} color={COLORS.warning} />
-                <Text style={styles.chatText}>Chat</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        ))}
+            );
+          })
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -153,6 +361,12 @@ export default function InboxPage({ onNavigate }: InboxPageProps) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: COLORS.background,
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -167,6 +381,22 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   scroll: { flex: 1 },
+  emptyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 80,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: COLORS.text,
+    marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: COLORS.textLight,
+    marginTop: 8,
+  },
   messageCard: {
     padding: 16,
     borderBottomWidth: 1,
@@ -205,7 +435,28 @@ const styles = StyleSheet.create({
   name: { fontSize: 14, fontWeight: "600" },
   role: { fontSize: 12, color: COLORS.textSecondary },
   time: { fontSize: 12, color: COLORS.textLight },
-  lastMessage: { fontSize: 13, marginTop: 2 },
+  lastMessageRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 2,
+  },
+  lastMessage: { fontSize: 13, flex: 1 },
+  unreadBadge: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6,
+    marginLeft: 8,
+  },
+  unreadText: {
+    color: COLORS.white,
+    fontSize: 11,
+    fontWeight: "700",
+  },
   orderId: { fontSize: 12, color: COLORS.secondary, marginTop: 2 },
   unreadDot: {
     width: 8,
@@ -219,7 +470,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: COLORS.success + "20", // Light green with opacity
+    backgroundColor: COLORS.success + "20",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
@@ -228,7 +479,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: COLORS.warning + "20", // Light orange with opacity
+    backgroundColor: COLORS.warning + "20",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,

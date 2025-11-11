@@ -307,8 +307,8 @@ export default function PaymentMethodPage({
       </LinearGradient>
 
       {/* Content */}
-      <ScrollView 
-        style={styles.content} 
+      <ScrollView
+        style={styles.content}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
@@ -447,21 +447,33 @@ export default function PaymentMethodPage({
                   >
                     <View style={styles.typeIconContainer}>
                       {type === "card" && (
-                        <CreditCard 
-                          size={20} 
-                          color={formData.type === type ? COLORS.white : COLORS.primary} 
+                        <CreditCard
+                          size={20}
+                          color={
+                            formData.type === type
+                              ? COLORS.white
+                              : COLORS.primary
+                          }
                         />
                       )}
                       {(type === "momo" || type === "zalopay") && (
-                        <Wallet 
-                          size={20} 
-                          color={formData.type === type ? COLORS.white : COLORS.primary} 
+                        <Wallet
+                          size={20}
+                          color={
+                            formData.type === type
+                              ? COLORS.white
+                              : COLORS.primary
+                          }
                         />
                       )}
                       {type === "cash" && (
-                        <DollarSign 
-                          size={20} 
-                          color={formData.type === type ? COLORS.white : COLORS.primary} 
+                        <DollarSign
+                          size={20}
+                          color={
+                            formData.type === type
+                              ? COLORS.white
+                              : COLORS.primary
+                          }
                         />
                       )}
                     </View>

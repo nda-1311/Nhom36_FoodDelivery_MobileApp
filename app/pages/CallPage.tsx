@@ -1,3 +1,4 @@
+import { SPACING } from "@/constants/design";
 import { Mic, MicOff, Phone, Volume2, VolumeX } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
@@ -39,7 +40,7 @@ export default function CallPage({ onNavigate = () => {} }: CallPageProps) {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerText}>Call with Driver</Text>
+        <Text style={styles.headerText}>Cuộc gọi với tài xế</Text>
       </View>
 
       {/* Main Content */}
@@ -92,10 +93,10 @@ export default function CallPage({ onNavigate = () => {} }: CallPageProps) {
         {/* Status */}
         <View style={styles.status}>
           <Text style={styles.statusText}>
-            {isMuted ? "Microphone is muted" : "Microphone is active"}
+            {isMuted ? "Micro đang tắt" : "Micro đang bật"}
           </Text>
           <Text style={styles.statusText}>
-            {isSpeaker ? "Speaker is on" : "Speaker is off"}
+            {isSpeaker ? "Loa ngoài đang bật" : "Loa ngoài đang tắt"}
           </Text>
         </View>
       </View>
@@ -103,11 +104,11 @@ export default function CallPage({ onNavigate = () => {} }: CallPageProps) {
       {/* Footer / End Call */}
       <View style={styles.footer}>
         <TouchableOpacity
-          onPress={() => onNavigate("order-tracking")}
+          onPress={() => onNavigate("chat")}
           style={styles.endCallButton}
         >
           <Phone size={26} color="#fff" />
-          <Text style={styles.endCallText}>End Call</Text>
+          <Text style={styles.endCallText}>Kết thúc cuộc gọi</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -175,7 +176,10 @@ const styles = StyleSheet.create({
   status: { alignItems: "center", marginBottom: 40 },
   statusText: { fontSize: 14, color: "#6b7280", marginVertical: 2 },
 
-  footer: { padding: 20 },
+  footer: { 
+    padding: 20,
+    paddingBottom: SPACING.bottomNav,
+  },
   endCallButton: {
     flexDirection: "row",
     backgroundColor: "#ef4444",
