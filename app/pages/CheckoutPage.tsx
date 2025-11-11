@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
   },
   optionSelected: {
     borderColor: COLORS.primary,
-    backgroundColor: `${COLORS.primary}10`,
+    backgroundColor: "#FFE0D6", // Màu cam đỏ nhạt rõ ràng
   },
   optionContent: {
     flex: 1,

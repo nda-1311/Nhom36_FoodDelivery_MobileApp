@@ -222,36 +222,21 @@ export default function AccountPage({ onNavigate, data }: AccountPageProps) {
       {/* Stats Cards */}
       <View style={styles.statsSection}>
         <View style={styles.statCard}>
-          <View
-            style={[
-              styles.statIconCircle,
-              { backgroundColor: `${COLORS.primary}15` },
-            ]}
-          >
+          <View style={[styles.statIconCircle, { backgroundColor: "#FFE5DD" }]}>
             <ShoppingBag size={24} color={COLORS.primary} />
           </View>
           <Text style={styles.statValue}>{userInfo.totalOrders}</Text>
           <Text style={styles.statLabel}>Tổng đơn</Text>
         </View>
         <View style={styles.statCard}>
-          <View
-            style={[
-              styles.statIconCircle,
-              { backgroundColor: `${COLORS.accent}15` },
-            ]}
-          >
+          <View style={[styles.statIconCircle, { backgroundColor: "#FFF4CC" }]}>
             <Star size={24} color={COLORS.accent} />
           </View>
           <Text style={styles.statValue}>{userInfo.rating}</Text>
           <Text style={styles.statLabel}>Đánh giá</Text>
         </View>
         <View style={styles.statCard}>
-          <View
-            style={[
-              styles.statIconCircle,
-              { backgroundColor: `${COLORS.secondary}15` },
-            ]}
-          >
+          <View style={[styles.statIconCircle, { backgroundColor: "#CCF5FA" }]}>
             <Gift size={24} color={COLORS.secondary} />
           </View>
           <Text style={styles.statValue}>5</Text>
@@ -306,12 +291,7 @@ export default function AccountPage({ onNavigate, data }: AccountPageProps) {
             style={[styles.menuCard, styles.adminCard]}
             onPress={() => onNavigate("admin-dashboard")}
           >
-            <View
-              style={[
-                styles.menuIcon,
-                { backgroundColor: `${COLORS.primary}20` },
-              ]}
-            >
+            <View style={[styles.menuIcon, { backgroundColor: "#FFE5DD" }]}>
               <Shield size={22} color={COLORS.primary} />
             </View>
             <Text style={[styles.menuLabel, styles.adminLabel]}>
@@ -325,12 +305,7 @@ export default function AccountPage({ onNavigate, data }: AccountPageProps) {
           style={styles.menuCard}
           onPress={() => onNavigate("history")}
         >
-          <View
-            style={[
-              styles.menuIcon,
-              { backgroundColor: `${COLORS.primary}15` },
-            ]}
-          >
+          <View style={[styles.menuIcon, { backgroundColor: "#FFE5DD" }]}>
             <History size={22} color={COLORS.primary} />
           </View>
           <Text style={styles.menuLabel}>Lịch sử đơn hàng</Text>
@@ -341,12 +316,7 @@ export default function AccountPage({ onNavigate, data }: AccountPageProps) {
           style={styles.menuCard}
           onPress={() => onNavigate("notifications")}
         >
-          <View
-            style={[
-              styles.menuIcon,
-              { backgroundColor: `${COLORS.secondary}15` },
-            ]}
-          >
+          <View style={[styles.menuIcon, { backgroundColor: "#CCF5FA" }]}>
             <Bell size={22} color={COLORS.secondary} />
           </View>
           <Text style={styles.menuLabel}>Thông báo</Text>
@@ -357,9 +327,7 @@ export default function AccountPage({ onNavigate, data }: AccountPageProps) {
           style={styles.menuCard}
           onPress={() => onNavigate("payment-method")}
         >
-          <View
-            style={[styles.menuIcon, { backgroundColor: `${COLORS.accent}15` }]}
-          >
+          <View style={[styles.menuIcon, { backgroundColor: "#FFF4CC" }]}>
             <CreditCard size={22} color={COLORS.accent} />
           </View>
           <Text style={styles.menuLabel}>Phương thức thanh toán</Text>
@@ -370,7 +338,7 @@ export default function AccountPage({ onNavigate, data }: AccountPageProps) {
           style={styles.menuCard}
           onPress={() => onNavigate("address-management")}
         >
-          <View style={[styles.menuIcon, { backgroundColor: "#8b5cf615" }]}>
+          <View style={[styles.menuIcon, { backgroundColor: "#EDE7F6" }]}>
             <MapPin size={22} color="#8b5cf6" />
           </View>
           <Text style={styles.menuLabel}>Địa chỉ giao hàng</Text>
@@ -381,7 +349,7 @@ export default function AccountPage({ onNavigate, data }: AccountPageProps) {
           style={styles.menuCard}
           onPress={() => onNavigate("support")}
         >
-          <View style={[styles.menuIcon, { backgroundColor: "#06b6d415" }]}>
+          <View style={[styles.menuIcon, { backgroundColor: "#CFFAFE" }]}>
             <HelpCircle size={22} color="#06b6d4" />
           </View>
           <Text style={styles.menuLabel}>Trợ giúp</Text>
@@ -586,7 +554,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: RADIUS.full,
-    backgroundColor: `${COLORS.primary}15`,
+    backgroundColor: "#FFE5DD",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -633,7 +601,7 @@ const styles = StyleSheet.create({
   adminCard: {
     borderWidth: 2,
     borderColor: COLORS.primary,
-    backgroundColor: `${COLORS.primary}05`,
+    backgroundColor: "#FFE0D6",
   },
   adminLabel: {
     color: COLORS.primary,
