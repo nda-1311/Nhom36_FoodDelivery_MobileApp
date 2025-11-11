@@ -1,10 +1,13 @@
+import { COLORS, RADIUS, SHADOWS, SPACING } from "@/constants/design";
 import { supabase } from "@/lib/supabase/client";
+import { LinearGradient } from "expo-linear-gradient";
 import {
+  Camera,
   ChevronLeft,
   Edit2,
   Lock,
+  LogOut,
   Mail,
-  MapPin,
   Phone,
   Save,
   User,
@@ -32,7 +35,6 @@ interface UserProfile {
   name: string;
   email: string;
   phone: string;
-  address: string;
   avatar?: string;
 }
 
@@ -45,14 +47,12 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps) {
     name: "",
     email: "",
     phone: "",
-    address: "",
   });
   const [editedProfile, setEditedProfile] = useState<UserProfile>({
     id: "",
     name: "",
     email: "",
     phone: "",
-    address: "",
   });
 
   useEffect(() => {
@@ -85,7 +85,6 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps) {
           name: userData?.name || user.user_metadata?.name || "User",
           email: user.email || "",
           phone: userData?.phone || user.user_metadata?.phone || "",
-          address: userData?.address || "",
           avatar: userData?.avatar || user.user_metadata?.avatar,
         };
 
@@ -121,7 +120,6 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps) {
         data: {
           name: editedProfile.name,
           phone: editedProfile.phone,
-          address: editedProfile.address,
         },
       });
 
@@ -136,7 +134,6 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps) {
         .update({
           name: editedProfile.name,
           phone: editedProfile.phone,
-          address: editedProfile.address,
         })
         .eq("id", profile.id);
 
@@ -149,7 +146,6 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps) {
             email: profile.email,
             name: editedProfile.name,
             phone: editedProfile.phone,
-            address: editedProfile.address,
           },
         ]);
         // Don't throw error here - auth metadata is already saved
@@ -184,36 +180,57 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps) {
   if (loading) {
     return (
       <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color="#06b6d4" />
-        <Text style={styles.textMuted}>Đang tải thông tin...</Text>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Đang tải thông tin...</Text>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => onNavigate("account")}>
-          <ChevronLeft size={24} color="#fff" />
+      {/* Header with Gradient */}
+      <LinearGradient
+        colors={[COLORS.primary, COLORS.secondary]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.header}
+      >
+        <TouchableOpacity
+          onPress={() => onNavigate("account")}
+          style={styles.backButton}
+        >
+          <ChevronLeft size={24} color="#ffffff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Thông tin cá nhân</Text>
         {!isEditing ? (
-          <TouchableOpacity onPress={() => setIsEditing(true)}>
-            <Edit2 size={20} color="#fff" />
+          <TouchableOpacity
+            onPress={() => setIsEditing(true)}
+            style={styles.editButton}
+          >
+            <Edit2 size={20} color="#ffffff" />
           </TouchableOpacity>
         ) : (
-          <View style={{ width: 20 }} />
+          <View style={{ width: 40 }} />
         )}
-      </View>
+      </LinearGradient>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Avatar */}
-        <View style={styles.avatarContainer}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {profile.name?.charAt(0).toUpperCase() || "U"}
-            </Text>
+        {/* Avatar Section */}
+        <View style={styles.avatarSection}>
+          <View style={styles.avatarWrapper}>
+            <LinearGradient
+              colors={[COLORS.primary, COLORS.secondary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.avatar}
+            >
+              <Text style={styles.avatarText}>
+                {profile.name?.charAt(0).toUpperCase() || "U"}
+              </Text>
+            </LinearGradient>
+            <TouchableOpacity style={styles.cameraButton}>
+              <Camera size={18} color="#ffffff" />
+            </TouchableOpacity>
           </View>
           <Text style={styles.userName}>{profile.name}</Text>
           <Text style={styles.userEmail}>{profile.email}</Text>
@@ -224,9 +241,9 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps) {
           <Text style={styles.sectionTitle}>Thông tin tài khoản</Text>
 
           {/* Name */}
-          <View style={styles.fieldContainer}>
-            <View style={styles.fieldIcon}>
-              <User size={20} color="#06b6d4" />
+          <View style={styles.fieldCard}>
+            <View style={styles.fieldIconCircle}>
+              <User size={20} color={COLORS.primary} />
             </View>
             <View style={styles.fieldContent}>
               <Text style={styles.fieldLabel}>Họ và tên</Text>
@@ -238,6 +255,7 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps) {
                     setEditedProfile({ ...editedProfile, name: text })
                   }
                   placeholder="Nhập họ tên"
+                  placeholderTextColor={COLORS.textLight}
                 />
               ) : (
                 <Text style={styles.fieldValue}>{profile.name}</Text>
@@ -246,9 +264,9 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps) {
           </View>
 
           {/* Email */}
-          <View style={styles.fieldContainer}>
-            <View style={styles.fieldIcon}>
-              <Mail size={20} color="#06b6d4" />
+          <View style={styles.fieldCard}>
+            <View style={styles.fieldIconCircle}>
+              <Mail size={20} color={COLORS.primary} />
             </View>
             <View style={styles.fieldContent}>
               <Text style={styles.fieldLabel}>Email</Text>
@@ -258,9 +276,9 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps) {
           </View>
 
           {/* Phone */}
-          <View style={styles.fieldContainer}>
-            <View style={styles.fieldIcon}>
-              <Phone size={20} color="#06b6d4" />
+          <View style={styles.fieldCard}>
+            <View style={styles.fieldIconCircle}>
+              <Phone size={20} color={COLORS.primary} />
             </View>
             <View style={styles.fieldContent}>
               <Text style={styles.fieldLabel}>Số điện thoại</Text>
@@ -272,37 +290,12 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps) {
                     setEditedProfile({ ...editedProfile, phone: text })
                   }
                   placeholder="Nhập số điện thoại"
+                  placeholderTextColor={COLORS.textLight}
                   keyboardType="phone-pad"
                 />
               ) : (
                 <Text style={styles.fieldValue}>
                   {profile.phone || "Chưa cập nhật"}
-                </Text>
-              )}
-            </View>
-          </View>
-
-          {/* Address */}
-          <View style={styles.fieldContainer}>
-            <View style={styles.fieldIcon}>
-              <MapPin size={20} color="#06b6d4" />
-            </View>
-            <View style={styles.fieldContent}>
-              <Text style={styles.fieldLabel}>Địa chỉ giao hàng</Text>
-              {isEditing ? (
-                <TextInput
-                  style={[styles.input, styles.textareaInput]}
-                  value={editedProfile.address}
-                  onChangeText={(text) =>
-                    setEditedProfile({ ...editedProfile, address: text })
-                  }
-                  placeholder="Nhập địa chỉ"
-                  multiline
-                  numberOfLines={2}
-                />
-              ) : (
-                <Text style={styles.fieldValue}>
-                  {profile.address || "Chưa cập nhật"}
                 </Text>
               )}
             </View>
@@ -313,7 +306,7 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps) {
         {isEditing && (
           <View style={styles.buttonContainer}>
             <TouchableOpacity
-              style={[styles.button, styles.cancelButton]}
+              style={styles.cancelButton}
               onPress={handleCancel}
               disabled={saving}
             >
@@ -322,18 +315,25 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps) {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.button, styles.saveButton]}
+              style={styles.saveButtonWrapper}
               onPress={handleSave}
               disabled={saving}
             >
-              {saving ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <>
-                  <Save size={18} color="#fff" />
-                  <Text style={styles.saveButtonText}>Lưu</Text>
-                </>
-              )}
+              <LinearGradient
+                colors={[COLORS.primary, COLORS.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.saveButton}
+              >
+                {saving ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <>
+                    <Save size={18} color="#ffffff" />
+                    <Text style={styles.saveButtonText}>Lưu</Text>
+                  </>
+                )}
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         )}
@@ -342,14 +342,16 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Bảo mật</Text>
           <TouchableOpacity
-            style={styles.passwordButton}
+            style={styles.actionCard}
             onPress={() => onNavigate("change-password")}
           >
-            <Lock size={20} color="#06b6d4" />
-            <Text style={styles.passwordButtonText}>Đổi mật khẩu</Text>
+            <View style={styles.actionIconCircle}>
+              <Lock size={20} color={COLORS.primary} />
+            </View>
+            <Text style={styles.actionText}>Đổi mật khẩu</Text>
             <ChevronLeft
               size={20}
-              color="#9ca3af"
+              color={COLORS.textSecondary}
               style={{ transform: [{ rotate: "180deg" }] }}
             />
           </TouchableOpacity>
@@ -371,6 +373,7 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps) {
             }
           }}
         >
+          <LogOut size={20} color="#ffffff" />
           <Text style={styles.logoutButtonText}>Đăng xuất</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -379,149 +382,260 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLORS.background,
   },
-  textMuted: { color: "#6b7280", marginTop: 8 },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 15,
+    color: COLORS.textSecondary,
+    fontWeight: "500",
+  },
 
+  // Header
   header: {
-    backgroundColor: "#06b6d4",
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    paddingTop: 50,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 16,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: RADIUS.full,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
-    fontSize: 18,
+    color: "#ffffff",
+    fontSize: 20,
     fontWeight: "700",
-    color: "#fff",
     flex: 1,
     marginLeft: 12,
   },
-
-  content: { padding: 16, paddingBottom: 120 },
-
-  avatarContainer: {
+  editButton: {
+    width: 40,
+    height: 40,
+    borderRadius: RADIUS.full,
+    backgroundColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
-    paddingVertical: 24,
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    justifyContent: "center",
+  },
+
+  // Content
+  content: {
+    padding: 16,
+    paddingBottom: SPACING.bottomNav,
+  },
+
+  // Avatar Section
+  avatarSection: {
+    alignItems: "center",
+    paddingVertical: 32,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.l,
+    marginBottom: 16,
+    ...SHADOWS.small,
+  },
+  avatarWrapper: {
+    position: "relative",
     marginBottom: 16,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#06b6d4",
+    width: 100,
+    height: 100,
+    borderRadius: RADIUS.full,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 12,
+    ...SHADOWS.medium,
   },
-  avatarText: { fontSize: 32, fontWeight: "700", color: "#fff" },
-  userName: {
-    fontSize: 20,
+  avatarText: {
+    fontSize: 40,
     fontWeight: "700",
-    color: "#111827",
+    color: "#ffffff",
+  },
+  cameraButton: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.accent,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 3,
+    borderColor: COLORS.surface,
+    ...SHADOWS.small,
+  },
+  userName: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: COLORS.text,
     marginBottom: 4,
   },
-  userEmail: { fontSize: 14, color: "#6b7280" },
+  userEmail: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+  },
 
+  // Section
   section: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.l,
     padding: 16,
     marginBottom: 16,
+    ...SHADOWS.small,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.text,
     marginBottom: 16,
   },
 
-  fieldContainer: {
+  // Field Card
+  fieldCard: {
     flexDirection: "row",
-    paddingVertical: 12,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
+    borderBottomColor: COLORS.border,
   },
-  fieldIcon: {
-    width: 40,
+  fieldIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: RADIUS.full,
+    backgroundColor: `${COLORS.primary}15`,
     justifyContent: "center",
     alignItems: "center",
+    marginRight: 12,
   },
-  fieldContent: { flex: 1 },
-  fieldLabel: { fontSize: 12, color: "#6b7280", marginBottom: 4 },
-  fieldValue: { fontSize: 15, color: "#111827", fontWeight: "500" },
+  fieldContent: {
+    flex: 1,
+  },
+  fieldLabel: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginBottom: 6,
+    fontWeight: "500",
+  },
+  fieldValue: {
+    fontSize: 15,
+    color: COLORS.text,
+    fontWeight: "600",
+  },
   fieldNote: {
     fontSize: 11,
-    color: "#9ca3af",
-    marginTop: 2,
+    color: COLORS.textLight,
+    marginTop: 4,
     fontStyle: "italic",
   },
 
+  // Input
   input: {
     fontSize: 15,
-    color: "#111827",
-    backgroundColor: "#f9fafb",
+    color: COLORS.text,
+    backgroundColor: COLORS.background,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 6,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.m,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 10,
+    fontWeight: "500",
   },
   textareaInput: {
-    minHeight: 60,
+    minHeight: 80,
     textAlignVertical: "top",
   },
 
+  // Buttons
   buttonContainer: {
     flexDirection: "row",
     gap: 12,
     marginBottom: 16,
   },
-  button: {
+  cancelButton: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  cancelButton: {
+    paddingVertical: 14,
+    borderRadius: RADIUS.l,
     backgroundColor: "#fef2f2",
     borderWidth: 1,
     borderColor: "#fecaca",
   },
-  cancelButtonText: { fontSize: 14, fontWeight: "600", color: "#ef4444" },
-  saveButton: {
-    backgroundColor: "#06b6d4",
+  cancelButtonText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#ef4444",
   },
-  saveButtonText: { fontSize: 14, fontWeight: "600", color: "#fff" },
-
-  passwordButton: {
+  saveButtonWrapper: {
+    flex: 1,
+    borderRadius: RADIUS.l,
+    overflow: "hidden",
+    ...SHADOWS.medium,
+  },
+  saveButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    paddingVertical: 12,
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
   },
-  passwordButtonText: {
-    flex: 1,
+  saveButtonText: {
     fontSize: 15,
-    fontWeight: "500",
-    color: "#111827",
+    fontWeight: "700",
+    color: "#ffffff",
   },
 
-  logoutButton: {
-    backgroundColor: "#ef4444",
-    paddingVertical: 14,
-    borderRadius: 8,
+  // Action Card
+  actionCard: {
+    flexDirection: "row",
     alignItems: "center",
+    paddingVertical: 12,
   },
-  logoutButtonText: { fontSize: 15, fontWeight: "700", color: "#fff" },
+  actionIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: RADIUS.full,
+    backgroundColor: `${COLORS.primary}15`,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  actionText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "600",
+    color: COLORS.text,
+  },
+
+  // Logout Button
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#ef4444",
+    paddingVertical: 16,
+    borderRadius: RADIUS.l,
+    ...SHADOWS.medium,
+  },
+  logoutButtonText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#ffffff",
+  },
 });

@@ -1,3 +1,4 @@
+import { COLORS } from "@/constants/design";
 import { supabase } from "@/lib/supabase/client";
 import { ChevronLeft, Heart } from "lucide-react-native";
 import React, { useEffect, useMemo, useState } from "react";
@@ -115,12 +116,12 @@ export default function FavoritesPage({
       <ScrollView contentContainerStyle={styles.content}>
         {loading ? (
           <View style={styles.centered}>
-            <ActivityIndicator color="#06b6d4" size="large" />
+            <ActivityIndicator color={COLORS.primary} size="large" />
             <Text style={styles.textMuted}>Loading favorites...</Text>
           </View>
         ) : list.length === 0 ? (
           <View style={styles.centered}>
-            <Heart size={48} color="#9ca3af" />
+            <Heart size={48} color={COLORS.textLight} />
             <Text style={styles.textMuted}>No favorites yet</Text>
             <Text style={styles.textSmall}>
               Add items to your favorites to see them here
@@ -152,7 +153,7 @@ export default function FavoritesPage({
               <View style={{ flex: 1 }}>
                 <Text style={styles.itemName}>{item.name}</Text>
                 {typeof item.price === "number" && (
-                  <Text style={styles.price}>${item.price}</Text>
+                  <Text style={styles.price}>{item.price}đ</Text>
                 )}
                 <View style={styles.actions}>
                   <TouchableOpacity
@@ -178,9 +179,9 @@ export default function FavoritesPage({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: COLORS.background },
   header: {
-    backgroundColor: "#06b6d4",
+    backgroundColor: COLORS.primary,
     flexDirection: "row",
     alignItems: "center",
     padding: 14,
@@ -190,15 +191,15 @@ const styles = StyleSheet.create({
 
   content: { padding: 16, paddingBottom: 100 },
   centered: { alignItems: "center", justifyContent: "center", marginTop: 60 },
-  textMuted: { color: "#6b7280", marginTop: 10 },
-  textSmall: { color: "#9ca3af", fontSize: 12, marginTop: 4 },
+  textMuted: { color: COLORS.textSecondary, marginTop: 10 },
+  textSmall: { color: COLORS.textLight, fontSize: 12, marginTop: 4 },
 
   card: {
     flexDirection: "row",
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.surface,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: COLORS.border,
     padding: 10,
     marginBottom: 10,
     shadowColor: "#000",
@@ -206,8 +207,8 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   image: { width: 80, height: 80, borderRadius: 8, marginRight: 10 },
-  itemName: { fontWeight: "700", color: "#111827", fontSize: 14 },
-  price: { color: "#6b7280", fontSize: 13, marginTop: 2 },
+  itemName: { fontWeight: "700", color: COLORS.text, fontSize: 14 },
+  price: { color: COLORS.textSecondary, fontSize: 13, marginTop: 2 },
 
   actions: {
     flexDirection: "row",
@@ -217,7 +218,7 @@ const styles = StyleSheet.create({
   },
   viewButton: {
     flex: 1,
-    backgroundColor: "#06b6d4",
+    backgroundColor: COLORS.primary,
     paddingVertical: 6,
     borderRadius: 8,
     alignItems: "center",
@@ -229,7 +230,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fee2e2",
   },
   primaryButton: {
-    backgroundColor: "#06b6d4",
+    backgroundColor: COLORS.primary,
     borderRadius: 10,
     paddingHorizontal: 20,
     paddingVertical: 10,

@@ -150,7 +150,7 @@ export default function OrderDetailPage({
   };
 
   const formatCurrency = (amount: number) => {
-    return `$${amount.toFixed(2)}`;
+    return `${amount.toLocaleString("vi-VN")}đ`;
   };
 
   if (loading) {

@@ -1,3 +1,4 @@
+import { COLORS } from "@/constants/design";
 import { ChevronLeft, MessageCircle, Phone } from "lucide-react-native";
 import React from "react";
 import {
@@ -135,11 +136,11 @@ export default function InboxPage({ onNavigate }: InboxPageProps) {
             {/* Quick Actions */}
             <View style={styles.actions}>
               <TouchableOpacity style={styles.callButton}>
-                <Phone size={12} color="#0e7490" />
+                <Phone size={12} color={COLORS.success} />
                 <Text style={styles.callText}>Call</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.chatButton}>
-                <MessageCircle size={12} color="#2563eb" />
+                <MessageCircle size={12} color={COLORS.warning} />
                 <Text style={styles.chatText}>Chat</Text>
               </TouchableOpacity>
             </View>
@@ -151,11 +152,11 @@ export default function InboxPage({ onNavigate }: InboxPageProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: COLORS.background },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#0891b2",
+    backgroundColor: COLORS.primary,
     paddingVertical: 14,
     paddingHorizontal: 16,
     gap: 10,
@@ -169,8 +170,8 @@ const styles = StyleSheet.create({
   messageCard: {
     padding: 16,
     borderBottomWidth: 1,
-    borderColor: "#e5e7eb",
-    backgroundColor: "#fff",
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
   },
   messageRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   avatarWrapper: { position: "relative" },
@@ -178,7 +179,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#06b6d4",
+    backgroundColor: COLORS.accent,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -193,8 +194,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#fff",
   },
-  statusActive: { backgroundColor: "#22c55e" },
-  statusOnline: { backgroundColor: "#3b82f6" },
+  statusActive: { backgroundColor: COLORS.success },
+  statusOnline: { backgroundColor: COLORS.info },
   contentWrapper: { flex: 1, minWidth: 0 },
   rowBetween: {
     flexDirection: "row",
@@ -202,15 +203,15 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   name: { fontSize: 14, fontWeight: "600" },
-  role: { fontSize: 12, color: "#6b7280" },
-  time: { fontSize: 12, color: "#9ca3af" },
+  role: { fontSize: 12, color: COLORS.textSecondary },
+  time: { fontSize: 12, color: COLORS.textLight },
   lastMessage: { fontSize: 13, marginTop: 2 },
-  orderId: { fontSize: 12, color: "#0ea5e9", marginTop: 2 },
+  orderId: { fontSize: 12, color: COLORS.secondary, marginTop: 2 },
   unreadDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#06b6d4",
+    backgroundColor: COLORS.primary,
     marginTop: -16,
   },
   actions: { flexDirection: "row", gap: 8, marginTop: 10, marginLeft: 60 },
@@ -218,7 +219,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#cffafe",
+    backgroundColor: COLORS.success + "20", // Light green with opacity
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
@@ -227,22 +228,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#dbeafe",
+    backgroundColor: COLORS.warning + "20", // Light orange with opacity
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
   },
   callText: {
-    color: "#0e7490",
+    color: COLORS.success,
     fontSize: 12,
     fontWeight: "600",
   },
   chatText: {
-    color: "#2563eb",
+    color: COLORS.warning,
     fontSize: 12,
     fontWeight: "600",
   },
-  textMuted: { color: "#9ca3af" },
-  textNormal: { color: "#111827" },
-  textBold: { fontWeight: "700", color: "#111827" },
+  textMuted: { color: COLORS.textLight },
+  textNormal: { color: COLORS.text },
+  textBold: { fontWeight: "700", color: COLORS.text },
 });

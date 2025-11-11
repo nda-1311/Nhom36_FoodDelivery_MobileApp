@@ -1,3 +1,12 @@
+import { FoodCard } from "@/components/FoodCard";
+import {
+  COLORS,
+  RADIUS,
+  SHADOWS,
+  SPACING,
+  TYPOGRAPHY,
+} from "@/constants/design";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   ChevronLeft,
   Clock,
@@ -141,102 +150,117 @@ export default function RestaurantPage({
       style={styles.container}
       contentContainerStyle={{ paddingBottom: 100 }}
     >
-      {/* Header image */}
-      <View style={styles.imageContainer}>
-        <Image source={{ uri: imageSrc }} style={styles.image} />
-        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <ChevronLeft color="#000" size={24} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.heartButton}
-          onPress={() => setIsFavorite(!isFavorite)}
-        >
-          <Heart
-            color={isFavorite ? "red" : "black"}
-            fill={isFavorite ? "red" : "none"}
-            size={24}
-          />
-        </TouchableOpacity>
-      </View>
+      {/* Hero Image with Gradient Overlay */}
+      <View style={styles.heroContainer}>
+        <Image source={{ uri: imageSrc }} style={styles.heroImage} />
+        <LinearGradient
+          colors={["transparent", "rgba(0,0,0,0.7)"]}
+          style={styles.heroGradient}
+        />
 
-      {/* Info */}
-      <View style={styles.infoCard}>
-        <View style={styles.infoHeader}>
-          <View>
-            <Text style={styles.restaurantName}>
-              {data?.name || "Restaurant"}
-            </Text>
-            <Text style={styles.cuisine}>{data?.cuisine || "Cuisine"}</Text>
-          </View>
-          <TouchableOpacity style={styles.shareButton}>
-            <Share2 size={20} color="#374151" />
+        {/* Header Buttons */}
+        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+          <ChevronLeft color={COLORS.dark} size={24} />
+        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => setIsFavorite(!isFavorite)}
+          >
+            <Heart
+              color={isFavorite ? COLORS.error : COLORS.dark}
+              fill={isFavorite ? COLORS.error : "none"}
+              size={22}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton}>
+            <Share2 size={22} color={COLORS.dark} />
           </TouchableOpacity>
         </View>
+      </View>
 
-        <View style={styles.row}>
-          <View style={styles.iconRow}>
-            <Clock size={16} color="#6b7280" />
-            <Text style={styles.textSm}>6am - 9pm</Text>
+      {/* Restaurant Info Card */}
+      <View style={styles.infoCard}>
+        <Text style={styles.restaurantName}>{data?.name || "Restaurant"}</Text>
+        <Text style={styles.cuisine}>{data?.cuisine || "Cuisine"}</Text>
+
+        {/* Meta Info Row */}
+        <View style={styles.metaRow}>
+          <View style={styles.metaItem}>
+            <Star size={16} color={COLORS.accent} fill={COLORS.accent} />
+            <Text style={styles.metaText}>{data?.rating ?? 4.5}</Text>
+            <Text style={styles.metaTextLight}>(289)</Text>
           </View>
-          <View style={styles.iconRow}>
-            <MapPin size={16} color="#6b7280" />
-            <Text style={styles.textSm}>2 km away</Text>
+          <View style={styles.metaDivider} />
+          <View style={styles.metaItem}>
+            <Clock size={16} color={COLORS.textSecondary} />
+            <Text style={styles.metaText}>20-30 min</Text>
           </View>
-          <Text style={styles.textSm}>$5 - $50</Text>
+          <View style={styles.metaDivider} />
+          <View style={styles.metaItem}>
+            <MapPin size={16} color={COLORS.textSecondary} />
+            <Text style={styles.metaText}>2 km</Text>
+          </View>
         </View>
 
-        <View style={styles.ratingRow}>
-          <Star size={18} color="#facc15" fill="#facc15" />
-          <Text style={styles.rating}>{data?.rating ?? 4.5}</Text>
-          <Text style={styles.reviewCount}>(289 reviews)</Text>
-        </View>
-
-        {/* Offers */}
-        <View style={{ gap: 8 }}>
-          <View style={[styles.offerBox, { backgroundColor: "#ffedd5" }]}>
-            <Text>🎟️ 2 discount vouchers available</Text>
+        {/* Offer Badges */}
+        <View style={styles.offersContainer}>
+          <View
+            style={[
+              styles.offerBadge,
+              { backgroundColor: COLORS.successLight },
+            ]}
+          >
+            <Text style={styles.offerText}>🎟️ 2 vouchers</Text>
           </View>
-          <View style={[styles.offerBox, { backgroundColor: "#e0f2fe" }]}>
-            <Text>🚚 Delivery in 20 mins</Text>
+          <View
+            style={[
+              styles.offerBadge,
+              { backgroundColor: COLORS.primaryLight },
+            ]}
+          >
+            <Text style={styles.offerText}>🚚 Free delivery</Text>
           </View>
         </View>
       </View>
 
-      {/* Tabs */}
+      {/* Category Tabs */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={styles.tabRow}
+        style={styles.categoryTabs}
+        contentContainerStyle={{ paddingHorizontal: SPACING.m }}
       >
         {categories.map((tab) => (
           <TouchableOpacity
             key={tab}
             onPress={() => setActiveTab(tab)}
             style={[
-              styles.tabButton,
-              activeTab === tab && styles.tabButtonActive,
+              styles.categoryTab,
+              activeTab === tab && styles.categoryTabActive,
             ]}
           >
             <Text
               style={[
-                styles.tabText,
-                activeTab === tab && styles.tabTextActive,
+                styles.categoryTabText,
+                activeTab === tab && styles.categoryTabTextActive,
               ]}
             >
-              {tab}
+              {tab.toUpperCase()}
             </Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
-      {/* Combo deals */}
-      {activeTab === "menu" && (
-        <>
-          <Text style={styles.sectionTitle}>Combo Deals</Text>
+      {/* Combo Deals */}
+      {activeTab === "menu" && combos.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>🔥 Combo Deals</Text>
           {combos.map((combo, idx) => (
             <TouchableOpacity
               key={idx}
               style={styles.comboCard}
+              activeOpacity={0.8}
               onPress={() =>
                 onNavigate("food-details", {
                   ...combo,
@@ -245,75 +269,86 @@ export default function RestaurantPage({
                 })
               }
             >
-              <Image source={{ uri: combo.image }} style={styles.comboImg} />
-              <View style={{ flex: 1 }}>
+              <Image source={{ uri: combo.image }} style={styles.comboImage} />
+              <View style={styles.comboInfo}>
                 <Text style={styles.comboName}>{combo.name}</Text>
-                <Text style={styles.comboDesc}>{combo.description}</Text>
-                <View style={styles.priceRow}>
-                  <Text style={styles.price}>${combo.price}</Text>
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <Star size={12} color="#facc15" fill="#facc15" />
-                    <Text style={styles.ratingText}>{combo.rating}</Text>
+                <Text style={styles.comboDesc} numberOfLines={2}>
+                  {combo.description}
+                </Text>
+                <View style={styles.comboFooter}>
+                  <Text style={styles.comboPrice}>{combo.price}đ</Text>
+                  <View style={styles.comboRating}>
+                    <Star
+                      size={14}
+                      color={COLORS.accent}
+                      fill={COLORS.accent}
+                    />
+                    <Text style={styles.ratingValue}>{combo.rating}</Text>
+                    <Text style={styles.reviewsCount}>({combo.reviews})</Text>
                   </View>
                 </View>
               </View>
             </TouchableOpacity>
           ))}
-        </>
+        </View>
       )}
 
-      {/* Menu items */}
-      <Text style={styles.sectionTitle}>
-        {activeTab === "menu" ? "Popular Items" : `${activeTab} Menu`}
-      </Text>
-      <View style={styles.grid}>
-        {filteredItems.slice(0, 4).map((item) => (
-          <TouchableOpacity
-            key={item.id}
-            style={styles.menuCard}
-            onPress={() =>
-              onNavigate("food-details", {
-                ...item,
-                __resolvedImage: item.image,
-                restaurant: data,
-              })
-            }
-          >
-            <Image source={{ uri: item.image }} style={styles.menuImg} />
-            <View style={styles.menuInfo}>
-              <Text style={styles.menuName}>{item.name}</Text>
-              <Text style={styles.menuDesc}>{item.description}</Text>
-              <View style={styles.priceRow}>
-                <Text style={styles.menuPrice}>${item.price}</Text>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Star size={12} color="#facc15" fill="#facc15" />
-                  <Text style={styles.ratingText}>{item.rating}</Text>
-                </View>
-              </View>
+      {/* Menu Items Grid */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>
+          {activeTab === "menu" ? "🍽️ Popular Items" : `${activeTab} Menu`}
+        </Text>
+        <View style={styles.menuGrid}>
+          {filteredItems.map((item) => (
+            <View key={item.id} style={styles.menuCardWrapper}>
+              <FoodCard
+                id={item.id}
+                name={item.name}
+                image={{ uri: item.image }}
+                price={item.price}
+                rating={item.rating}
+                onPress={() =>
+                  onNavigate("food-details", {
+                    ...item,
+                    __resolvedImage: item.image,
+                    restaurant: data,
+                  })
+                }
+              />
             </View>
-          </TouchableOpacity>
-        ))}
+          ))}
+        </View>
       </View>
 
-      {/* Reviews */}
-      {activeTab === "menu" && (
-        <>
-          <Text style={styles.sectionTitle}>Customer Reviews</Text>
+      {/* Reviews Section */}
+      {activeTab === "menu" && reviews.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>⭐ Customer Reviews</Text>
           {reviews.map((review, idx) => (
             <View key={idx} style={styles.reviewCard}>
-              <Text style={styles.avatar}>{review.avatar}</Text>
-              <View style={{ flex: 1 }}>
+              <View style={styles.reviewAvatar}>
+                <Text style={styles.avatarEmoji}>{review.avatar}</Text>
+              </View>
+              <View style={styles.reviewContent}>
                 <View style={styles.reviewHeader}>
-                  <Text style={styles.reviewer}>{review.name}</Text>
+                  <Text style={styles.reviewerName}>{review.name}</Text>
                   <Text style={styles.reviewDate}>{review.date}</Text>
                 </View>
-                <View style={{ flexDirection: "row", marginVertical: 4 }}>
+                <View style={styles.reviewStars}>
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
                       size={12}
-                      color={i < review.rating ? "#facc15" : "#d1d5db"}
-                      fill="#facc15"
+                      color={
+                        i < review.rating
+                          ? COLORS.accent
+                          : COLORS.extraLightGray
+                      }
+                      fill={
+                        i < review.rating
+                          ? COLORS.accent
+                          : COLORS.extraLightGray
+                      }
                     />
                   ))}
                 </View>
@@ -321,127 +356,248 @@ export default function RestaurantPage({
               </View>
             </View>
           ))}
-        </>
+        </View>
       )}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: "#fff", flex: 1 },
-  imageContainer: { position: "relative" },
-  image: { width: "100%", height: 180 },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  heroContainer: {
+    position: "relative",
+    height: 260,
+  },
+  heroImage: {
+    width: "100%",
+    height: "100%",
+  },
+  heroGradient: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: "50%",
+  },
   backButton: {
     position: "absolute",
-    top: 12,
-    left: 12,
-    backgroundColor: "#fff",
-    borderRadius: 30,
-    padding: 6,
+    top: SPACING.l,
+    left: SPACING.m,
+    backgroundColor: COLORS.white,
+    borderRadius: RADIUS.full,
+    padding: SPACING.s,
+    ...SHADOWS.medium,
   },
-  heartButton: {
+  headerActions: {
     position: "absolute",
-    top: 12,
-    right: 12,
-    backgroundColor: "#fff",
-    borderRadius: 30,
-    padding: 6,
+    top: SPACING.l,
+    right: SPACING.m,
+    flexDirection: "row",
+    gap: SPACING.s,
   },
-  infoCard: { padding: 16, borderBottomWidth: 1, borderColor: "#e5e7eb" },
-  infoHeader: {
+  actionButton: {
+    backgroundColor: COLORS.white,
+    borderRadius: RADIUS.full,
+    padding: SPACING.s,
+    ...SHADOWS.medium,
+  },
+  infoCard: {
+    backgroundColor: COLORS.white,
+    padding: SPACING.l,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  restaurantName: {
+    ...TYPOGRAPHY.h2,
+    color: COLORS.text,
+    marginBottom: SPACING.xs,
+  },
+  cuisine: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.m,
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: SPACING.m,
+  },
+  metaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.xs,
+  },
+  metaDivider: {
+    width: 1,
+    height: 16,
+    backgroundColor: COLORS.border,
+    marginHorizontal: SPACING.m,
+  },
+  metaText: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.text,
+    fontWeight: "600",
+  },
+  metaTextLight: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+  },
+  offersContainer: {
+    flexDirection: "row",
+    gap: SPACING.s,
+  },
+  offerBadge: {
+    paddingHorizontal: SPACING.m,
+    paddingVertical: SPACING.s,
+    borderRadius: RADIUS.m,
+  },
+  offerText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.text,
+    fontWeight: "600",
+  },
+  categoryTabs: {
+    backgroundColor: COLORS.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  categoryTab: {
+    paddingVertical: SPACING.m,
+    paddingHorizontal: SPACING.l,
+    borderBottomWidth: 2,
+    borderBottomColor: "transparent",
+  },
+  categoryTabActive: {
+    borderBottomColor: COLORS.primary,
+  },
+  categoryTabText: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.textSecondary,
+    fontWeight: "600",
+  },
+  categoryTabTextActive: {
+    color: COLORS.primary,
+    fontWeight: "700",
+  },
+  section: {
+    paddingVertical: SPACING.l,
+  },
+  sectionTitle: {
+    ...TYPOGRAPHY.h3,
+    color: COLORS.text,
+    paddingHorizontal: SPACING.l,
+    marginBottom: SPACING.m,
+  },
+  comboCard: {
+    flexDirection: "row",
+    backgroundColor: COLORS.white,
+    marginHorizontal: SPACING.l,
+    marginBottom: SPACING.m,
+    borderRadius: RADIUS.l,
+    overflow: "hidden",
+    ...SHADOWS.card,
+  },
+  comboImage: {
+    width: 120,
+    height: 120,
+  },
+  comboInfo: {
+    flex: 1,
+    padding: SPACING.m,
+    justifyContent: "space-between",
+  },
+  comboName: {
+    ...TYPOGRAPHY.h4,
+    color: COLORS.text,
+    marginBottom: SPACING.xs,
+  },
+  comboDesc: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.s,
+  },
+  comboFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 8,
+    alignItems: "center",
   },
-  restaurantName: { fontSize: 22, fontWeight: "700" },
-  cuisine: { fontSize: 13, color: "#6b7280" },
-  shareButton: {
-    backgroundColor: "#f3f4f6",
-    padding: 6,
-    borderRadius: 20,
+  comboPrice: {
+    ...TYPOGRAPHY.h3,
+    color: COLORS.primary,
+    fontWeight: "800",
   },
-  row: { flexDirection: "row", gap: 12, flexWrap: "wrap", marginBottom: 6 },
-  iconRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  textSm: { fontSize: 12, color: "#374151" },
-  ratingRow: {
+  comboRating: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    marginBottom: 8,
   },
-  rating: { fontWeight: "700" },
-  reviewCount: { fontSize: 12, color: "#6b7280" },
-  offerBox: {
-    borderRadius: 8,
-    padding: 10,
+  ratingValue: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.text,
+    fontWeight: "700",
   },
-  tabRow: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderColor: "#e5e7eb",
-    backgroundColor: "#fff",
+  reviewsCount: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
   },
-  tabButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderBottomWidth: 2,
-    borderColor: "transparent",
-  },
-  tabButtonActive: { borderColor: "#06b6d4" },
-  tabText: { color: "#6b7280", fontSize: 14 },
-  tabTextActive: { color: "#06b6d4", fontWeight: "700" },
-  sectionTitle: { fontSize: 18, fontWeight: "700", margin: 16 },
-  comboCard: {
-    flexDirection: "row",
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 10,
-    padding: 10,
-    marginHorizontal: 16,
-    marginBottom: 8,
-  },
-  comboImg: { width: 80, height: 80, borderRadius: 8, marginRight: 10 },
-  comboName: { fontWeight: "700", fontSize: 14 },
-  comboDesc: { fontSize: 12, color: "#6b7280" },
-  priceRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 6,
-  },
-  price: { color: "#06b6d4", fontWeight: "700" },
-  ratingText: { fontSize: 11, color: "#6b7280" },
-  grid: {
+  menuGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: SPACING.m,
+    gap: SPACING.m,
   },
-  menuCard: {
+  menuCardWrapper: {
     width: "47%",
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 10,
-    overflow: "hidden",
   },
-  menuImg: { width: "100%", height: 90 },
-  menuInfo: { padding: 8 },
-  menuName: { fontWeight: "700", fontSize: 13 },
-  menuDesc: { fontSize: 11, color: "#6b7280" },
-  menuPrice: { color: "#06b6d4", fontWeight: "700" },
   reviewCard: {
     flexDirection: "row",
-    gap: 8,
-    borderBottomWidth: 1,
-    borderColor: "#e5e7eb",
-    padding: 10,
-    marginHorizontal: 16,
+    backgroundColor: COLORS.white,
+    marginHorizontal: SPACING.l,
+    marginBottom: SPACING.m,
+    padding: SPACING.m,
+    borderRadius: RADIUS.m,
+    ...SHADOWS.small,
   },
-  avatar: { fontSize: 20 },
-  reviewer: { fontWeight: "700", fontSize: 13 },
+  reviewAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.primaryLight,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: SPACING.m,
+  },
+  avatarEmoji: {
+    fontSize: 20,
+  },
+  reviewContent: {
+    flex: 1,
+  },
   reviewHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
+    marginBottom: SPACING.xs,
   },
-  reviewDate: { color: "#9ca3af", fontSize: 11 },
-  reviewText: { color: "#6b7280", fontSize: 12 },
+  reviewerName: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.text,
+    fontWeight: "700",
+  },
+  reviewDate: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textLight,
+  },
+  reviewStars: {
+    flexDirection: "row",
+    gap: 2,
+    marginBottom: SPACING.xs,
+  },
+  reviewText: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.textSecondary,
+    lineHeight: 20,
+  },
 });

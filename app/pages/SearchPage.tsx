@@ -317,7 +317,8 @@ export default function SearchPage({
                 />
                 <Text style={styles.cardTitle}>{item.name}</Text>
                 <Text style={styles.cardSub}>
-                  ⭐ {item.rating ?? "—"} • ${item.price ?? "—"}
+                  ⭐ {item.rating ?? "—"} •{" "}
+                  {item.price ? `${item.price}đ` : "—"}
                 </Text>
                 {!!item.collection && (
                   <View

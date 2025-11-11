@@ -1,8 +1,23 @@
+import {
+  COLORS,
+  RADIUS,
+  SHADOWS,
+  SPACING,
+  TYPOGRAPHY,
+} from "@/constants/design";
 import { useFavorites } from "@/hooks/useFavorites";
 import { getCartKey } from "@/lib/cartKey";
 import { supabase } from "@/lib/supabase/client";
 import { useCart } from "@/store/cart-context";
-import { ChevronLeft, Heart, Minus, Plus, Star } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import {
+  ChevronLeft,
+  Heart,
+  Minus,
+  Plus,
+  ShoppingCart,
+  Star,
+} from "lucide-react-native";
 import React, { useState } from "react";
 import {
   Alert,
@@ -169,15 +184,25 @@ export default function FoodDetailsPage({
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
-        {/* Image + Header */}
-        <View style={styles.imageWrapper}>
-          <Image source={imageSource} style={styles.image} resizeMode="cover" />
+      <ScrollView contentContainerStyle={{ paddingBottom: SPACING.bottomNav }}>
+        {/* Hero Image */}
+        <View style={styles.heroContainer}>
+          <Image
+            source={imageSource}
+            style={styles.heroImage}
+            resizeMode="cover"
+          />
+          <LinearGradient
+            colors={["transparent", "rgba(0,0,0,0.3)"]}
+            style={styles.heroGradient}
+          />
+
+          {/* Header Actions */}
           <TouchableOpacity
             onPress={() => onNavigate("home")}
             style={styles.backButton}
           >
-            <ChevronLeft size={24} color="#000" />
+            <ChevronLeft size={24} color={COLORS.dark} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleToggleFavorite}
@@ -186,72 +211,112 @@ export default function FoodDetailsPage({
           >
             <Heart
               size={24}
-              color={isFavorite ? "#ef4444" : "#111"}
-              fill={isFavorite ? "#ef4444" : "none"}
+              color={isFavorite ? COLORS.error : COLORS.dark}
+              fill={isFavorite ? COLORS.error : "none"}
             />
           </TouchableOpacity>
         </View>
 
-        {/* Info */}
-        <View style={styles.section}>
-          <View style={styles.rowBetween}>
-            <Text style={styles.foodName}>{displayName}</Text>
-            <Text style={styles.foodPrice}>${basePrice.toFixed(2)}</Text>
+        {/* Food Info Card */}
+        <View style={styles.infoCard}>
+          <View style={styles.infoHeader}>
+            <View style={styles.infoLeft}>
+              <Text style={styles.foodName}>{displayName}</Text>
+              <Text style={styles.foodDesc}>{displayDesc}</Text>
+            </View>
           </View>
-          <Text style={styles.desc}>{displayDesc}</Text>
 
-          <View style={styles.ratingRow}>
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Star
-                key={i}
-                size={16}
-                color={i < (data.rating || 4.5) ? "#facc15" : "#d1d5db"}
-                fill={i < (data.rating || 4.5) ? "#facc15" : "none"}
-              />
-            ))}
-            <Text style={styles.ratingText}>({data.rating || 4.5})</Text>
+          {/* Rating & Price */}
+          <View style={styles.metaRow}>
+            <View style={styles.ratingContainer}>
+              <Star size={18} color={COLORS.accent} fill={COLORS.accent} />
+              <Text style={styles.ratingValue}>{data.rating || 4.5}</Text>
+              <Text style={styles.ratingCount}>(289 reviews)</Text>
+            </View>
+            <View style={styles.priceContainer}>
+              <Text style={styles.priceLabel}>Base Price</Text>
+              <Text style={styles.priceValue}>
+                {basePrice.toLocaleString("vi-VN")}đ
+              </Text>
+            </View>
           </View>
         </View>
 
-        {/* Size */}
+        {/* Size Selection */}
         <View style={styles.section}>
-          <View style={styles.rowBetween}>
-            <Text style={styles.sectionTitle}>Size (Pick 1)</Text>
-            <Text style={styles.required}>Required</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>🥤 Size</Text>
+            <Text style={styles.requiredBadge}>Required</Text>
           </View>
-          {["S", "M", "L"].map((size) => (
-            <TouchableOpacity
-              key={size}
-              onPress={() => setSelectedSize(size)}
-              style={[
-                styles.optionRow,
-                selectedSize === size && styles.optionSelected,
-              ]}
-            >
-              <Text style={styles.optionLabel}>{size}</Text>
-              {size !== "S" && (
-                <Text style={styles.optionPrice}>
-                  +${size === "M" ? 5 : 10}
-                </Text>
-              )}
-            </TouchableOpacity>
-          ))}
+          <View style={styles.optionsGrid}>
+            {["S", "M", "L"].map((size) => (
+              <TouchableOpacity
+                key={size}
+                onPress={() => setSelectedSize(size)}
+                style={[
+                  styles.optionCard,
+                  selectedSize === size && styles.optionCardSelected,
+                ]}
+                activeOpacity={0.7}
+              >
+                <View style={styles.optionContent}>
+                  <Text
+                    style={[
+                      styles.optionLabel,
+                      selectedSize === size && styles.optionLabelSelected,
+                    ]}
+                  >
+                    {size}
+                  </Text>
+                  {size !== "S" && (
+                    <Text
+                      style={[
+                        styles.optionPrice,
+                        selectedSize === size && styles.optionPriceSelected,
+                      ]}
+                    >
+                      +{(size === "M" ? 5000 : 10000).toLocaleString("vi-VN")}đ
+                    </Text>
+                  )}
+                </View>
+                {selectedSize === size && (
+                  <View style={styles.selectedIndicator} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         {/* Toppings */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Toppings (Optional)</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>🧀 Toppings</Text>
+            <Text style={styles.optionalBadge}>Optional</Text>
+          </View>
           {["Corn", "Cheese Cheddar", "Salted egg"].map((topping) => (
             <TouchableOpacity
               key={topping}
               onPress={() => toggleTopping(topping)}
               style={[
-                styles.optionRow,
-                toppings.includes(topping) && styles.optionSelected,
+                styles.toppingRow,
+                toppings.includes(topping) && styles.toppingRowSelected,
               ]}
+              activeOpacity={0.7}
             >
-              <Text style={styles.optionLabel}>{topping}</Text>
-              <Text style={styles.optionPrice}>
+              <View style={styles.toppingLeft}>
+                <View
+                  style={[
+                    styles.checkbox,
+                    toppings.includes(topping) && styles.checkboxSelected,
+                  ]}
+                >
+                  {toppings.includes(topping) && (
+                    <Text style={styles.checkmark}>✓</Text>
+                  )}
+                </View>
+                <Text style={styles.toppingLabel}>{topping}</Text>
+              </View>
+              <Text style={styles.toppingPrice}>
                 +$
                 {topping === "Corn" ? 2 : topping === "Cheese Cheddar" ? 5 : 10}
               </Text>
@@ -261,59 +326,95 @@ export default function FoodDetailsPage({
 
         {/* Spiciness */}
         <View style={styles.section}>
-          <View style={styles.rowBetween}>
-            <Text style={styles.sectionTitle}>Spiciness (Pick 1)</Text>
-            <Text style={styles.required}>Required</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>🌶️ Spiciness</Text>
+            <Text style={styles.requiredBadge}>Required</Text>
           </View>
-          {["No", "Hot", "Very hot"].map((level) => (
-            <TouchableOpacity
-              key={level}
-              onPress={() => setSelectedSpiciness(level)}
-              style={[
-                styles.optionRow,
-                selectedSpiciness === level && styles.optionSelected,
-              ]}
-            >
-              <Text style={styles.optionLabel}>{level}</Text>
-            </TouchableOpacity>
-          ))}
+          <View style={styles.optionsGrid}>
+            {["No", "Hot", "Very hot"].map((level) => (
+              <TouchableOpacity
+                key={level}
+                onPress={() => setSelectedSpiciness(level)}
+                style={[
+                  styles.optionCard,
+                  selectedSpiciness === level && styles.optionCardSelected,
+                ]}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.optionLabel,
+                    selectedSpiciness === level && styles.optionLabelSelected,
+                  ]}
+                >
+                  {level}
+                </Text>
+                {selectedSpiciness === level && (
+                  <View style={styles.selectedIndicator} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
-        {/* Note */}
+        {/* Special Instructions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Special Instructions</Text>
+          <Text style={styles.sectionTitle}>📝 Special Instructions</Text>
           <TextInput
             value={note}
             onChangeText={setNote}
             placeholder="Add any special requests..."
+            placeholderTextColor={COLORS.textLight}
             style={styles.noteInput}
             multiline
+            numberOfLines={4}
           />
         </View>
       </ScrollView>
 
-      {/* Footer */}
+      {/* Floating Footer */}
       <View style={styles.footer}>
-        <View style={styles.quantityRow}>
-          <TouchableOpacity
-            onPress={() => setQuantity(Math.max(1, quantity - 1))}
-            style={styles.qtyButton}
-          >
-            <Minus size={20} color="#000" />
-          </TouchableOpacity>
-          <Text style={styles.qtyText}>{quantity}</Text>
-          <TouchableOpacity
-            onPress={() => setQuantity(quantity + 1)}
-            style={styles.qtyButton}
-          >
-            <Plus size={20} color="#000" />
-          </TouchableOpacity>
+        <View style={styles.footerTop}>
+          <View style={styles.quantityControl}>
+            <TouchableOpacity
+              onPress={() => setQuantity(Math.max(1, quantity - 1))}
+              style={styles.qtyButton}
+              activeOpacity={0.7}
+            >
+              <Minus size={20} color={COLORS.white} />
+            </TouchableOpacity>
+            <Text style={styles.qtyText}>{quantity}</Text>
+            <TouchableOpacity
+              onPress={() => setQuantity(quantity + 1)}
+              style={styles.qtyButton}
+              activeOpacity={0.7}
+            >
+              <Plus size={20} color={COLORS.white} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.totalContainer}>
+            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalPrice}>
+              {totalPrice.toLocaleString("vi-VN")}đ
+            </Text>
+          </View>
         </View>
 
-        <TouchableOpacity style={styles.addButton} onPress={handleAddToCart}>
-          <Text style={styles.addText}>
-            Add to cart (${totalPrice.toFixed(2)})
-          </Text>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={handleAddToCart}
+          activeOpacity={0.8}
+        >
+          <LinearGradient
+            colors={COLORS.gradientPrimary as any}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.addButtonGradient}
+          >
+            <ShoppingCart size={20} color={COLORS.white} />
+            <Text style={styles.addButtonText}>Add to Cart</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -323,110 +424,299 @@ export default function FoodDetailsPage({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-    position: "relative",
-    marginBottom: 70,
+    backgroundColor: COLORS.background,
   },
-  imageWrapper: {
+  heroContainer: {
     position: "relative",
-    width: "100%",
-    height: 250,
-    backgroundColor: "#f3f4f6",
+    height: 320,
+    backgroundColor: COLORS.extraLightGray,
   },
-  image: {
+  heroImage: {
     width: "100%",
     height: "100%",
-    resizeMode: "cover",
+  },
+  heroGradient: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: "40%",
   },
   backButton: {
     position: "absolute",
-    top: 30,
-    left: 20,
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 6,
+    top: SPACING.xl,
+    left: SPACING.m,
+    backgroundColor: COLORS.white,
+    borderRadius: RADIUS.full,
+    padding: SPACING.s,
+    ...SHADOWS.medium,
   },
   favButton: {
     position: "absolute",
-    top: 30,
-    right: 20,
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 6,
+    top: SPACING.xl,
+    right: SPACING.m,
+    backgroundColor: COLORS.white,
+    borderRadius: RADIUS.full,
+    padding: SPACING.s,
+    ...SHADOWS.medium,
   },
-  section: { padding: 16 },
-  rowBetween: { flexDirection: "row", justifyContent: "space-between" },
-  foodName: { fontSize: 22, fontWeight: "700", color: "#111827" },
-  foodPrice: { fontSize: 20, fontWeight: "700", color: "#06b6d4" },
-  desc: { fontSize: 14, color: "#6b7280", marginTop: 6 },
-  ratingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: 6,
+  infoCard: {
+    backgroundColor: COLORS.white,
+    padding: SPACING.l,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
-  ratingText: { fontSize: 12, color: "#6b7280" },
-  sectionTitle: { fontWeight: "700", fontSize: 15, marginBottom: 6 },
-  required: { color: "#06b6d4", fontSize: 13 },
-  optionRow: {
+  infoHeader: {
+    marginBottom: SPACING.m,
+  },
+  infoLeft: {
+    flex: 1,
+  },
+  foodName: {
+    ...TYPOGRAPHY.h2,
+    color: COLORS.text,
+    marginBottom: SPACING.xs,
+  },
+  foodDesc: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.textSecondary,
+    lineHeight: 22,
+  },
+  metaRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    backgroundColor: "#f9fafb",
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 6,
+    alignItems: "center",
   },
-  optionSelected: {
-    backgroundColor: "#ecfeff",
-    borderWidth: 1,
-    borderColor: "#06b6d4",
+  ratingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.xs,
   },
-  optionLabel: { color: "#111827", fontSize: 14 },
-  optionPrice: { color: "#06b6d4", fontSize: 13 },
-  noteInput: {
-    backgroundColor: "#f3f4f6",
-    borderRadius: 8,
-    padding: 10,
+  ratingValue: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.text,
+    fontWeight: "700",
+  },
+  ratingCount: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+  },
+  priceContainer: {
+    alignItems: "flex-end",
+  },
+  priceLabel: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+  },
+  priceValue: {
+    ...TYPOGRAPHY.h2,
+    color: COLORS.primary,
+    fontWeight: "800",
+  },
+  section: {
+    padding: SPACING.l,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: SPACING.m,
+  },
+  sectionTitle: {
+    ...TYPOGRAPHY.h4,
+    color: COLORS.text,
+  },
+  requiredBadge: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.white,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: SPACING.s,
+    paddingVertical: 4,
+    borderRadius: RADIUS.s,
+    fontWeight: "700",
+  },
+  optionalBadge: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.white,
+    backgroundColor: COLORS.secondary,
+    paddingHorizontal: SPACING.s,
+    paddingVertical: 4,
+    borderRadius: RADIUS.s,
+    fontWeight: "700",
+  },
+  optionsGrid: {
+    flexDirection: "row",
+    gap: SPACING.s,
+  },
+  optionCard: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.m,
+    padding: SPACING.m,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 60,
+    position: "relative",
+  },
+  optionCardSelected: {
+    backgroundColor: COLORS.primaryLight,
+    borderColor: COLORS.primary,
+  },
+  optionContent: {
+    alignItems: "center",
+  },
+  optionLabel: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.text,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  optionLabelSelected: {
+    color: COLORS.primary,
+  },
+  optionPrice: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    fontWeight: "600",
+  },
+  optionPriceSelected: {
+    color: COLORS.primary,
+  },
+  selectedIndicator: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.primary,
+  },
+  toppingRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: COLORS.surface,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.m,
+    padding: SPACING.m,
+    marginBottom: SPACING.s,
+  },
+  toppingRowSelected: {
+    backgroundColor: COLORS.primaryLight,
+    borderColor: COLORS.primary,
+  },
+  toppingLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.m,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.s,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  checkboxSelected: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  checkmark: {
+    color: COLORS.white,
     fontSize: 14,
+    fontWeight: "700",
+  },
+  toppingLabel: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.text,
+    fontWeight: "600",
+  },
+  toppingPrice: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.primary,
+    fontWeight: "700",
+  },
+  noteInput: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.m,
+    padding: SPACING.m,
+    ...TYPOGRAPHY.body,
+    color: COLORS.text,
+    minHeight: 100,
     textAlignVertical: "top",
   },
   footer: {
     position: "absolute",
-    bottom: 0,
+    bottom: 60, // Above bottom nav
     left: 0,
     right: 0,
+    backgroundColor: COLORS.white,
+    paddingHorizontal: SPACING.l,
+    paddingVertical: SPACING.m,
     borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 14,
-    gap: 10,
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 5,
-    zIndex: 100,
+    borderTopColor: COLORS.border,
+    ...SHADOWS.large,
   },
-  quantityRow: {
+  footerTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: SPACING.m,
+  },
+  quantityControl: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.full,
+    padding: 4,
+    gap: SPACING.m,
   },
   qtyButton: {
-    backgroundColor: "#e5e7eb",
-    borderRadius: 8,
-    padding: 8,
+    padding: SPACING.s,
   },
-  qtyText: { fontSize: 18, fontWeight: "700", width: 30, textAlign: "center" },
+  qtyText: {
+    ...TYPOGRAPHY.h3,
+    color: COLORS.white,
+    fontWeight: "700",
+    minWidth: 30,
+    textAlign: "center",
+  },
+  totalContainer: {
+    alignItems: "flex-end",
+  },
+  totalLabel: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+  },
+  totalPrice: {
+    ...TYPOGRAPHY.h2,
+    color: COLORS.text,
+    fontWeight: "800",
+  },
   addButton: {
-    flex: 1,
-    backgroundColor: "#06b6d4",
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
+    borderRadius: RADIUS.m,
+    overflow: "hidden",
+    ...SHADOWS.card,
   },
-  addText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  addButtonGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: SPACING.m,
+    gap: SPACING.s,
+  },
+  addButtonText: {
+    ...TYPOGRAPHY.h4,
+    color: COLORS.white,
+    fontWeight: "700",
+  },
 });

@@ -1,15 +1,16 @@
+import { COLORS } from "@/constants/design";
+import { ChevronLeft, MapPin, Phone, Send, Video } from "lucide-react-native";
 import React, { useState } from "react";
 import {
-  View,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
-  Image,
-  StyleSheet,
-  SafeAreaView,
+  View,
 } from "react-native";
-import { ChevronLeft, Phone, Video, Send, MapPin } from "lucide-react-native";
 
 interface ChatPageProps {
   onNavigate: (page: string, data?: any) => void;
@@ -154,11 +155,18 @@ export default function ChatPage({ onNavigate }: ChatPageProps) {
                   style={styles.messageImage}
                 />
               )}
-              <Text style={styles.messageText}>{msg.text}</Text>
+              <Text
+                style={[
+                  styles.messageText,
+                  msg.sender === "user" && { color: COLORS.white },
+                ]}
+              >
+                {msg.text}
+              </Text>
               <Text
                 style={[
                   styles.messageTime,
-                  msg.sender === "user" && { color: "#e0f2fe" },
+                  msg.sender === "user" && { color: COLORS.white },
                 ]}
               >
                 {msg.time}
@@ -178,11 +186,11 @@ export default function ChatPage({ onNavigate }: ChatPageProps) {
       <View style={styles.footer}>
         <View style={styles.quickActions}>
           <TouchableOpacity style={styles.actionButton}>
-            <MapPin size={18} color="#111827" />
+            <MapPin size={18} color={COLORS.text} />
             <Text style={styles.actionText}>Share Location</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton}>
-            <Phone size={18} color="#111827" />
+            <Phone size={18} color={COLORS.text} />
             <Text style={styles.actionText}>Call Driver</Text>
           </TouchableOpacity>
         </View>
@@ -206,10 +214,10 @@ export default function ChatPage({ onNavigate }: ChatPageProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: COLORS.background },
 
   header: {
-    backgroundColor: "#06b6d4",
+    backgroundColor: COLORS.primary,
     padding: 16,
     paddingBottom: 12,
   },
@@ -243,17 +251,17 @@ const styles = StyleSheet.create({
 
   messageBubble: { maxWidth: "75%", padding: 10, borderRadius: 16 },
   driverBubble: {
-    backgroundColor: "#f3f4f6",
+    backgroundColor: COLORS.extraLightGray,
     borderTopLeftRadius: 0,
   },
   userBubble: {
-    backgroundColor: "#06b6d4",
+    backgroundColor: COLORS.primary,
     borderTopRightRadius: 0,
   },
-  messageText: { color: "#111827", fontSize: 14 },
+  messageText: { color: COLORS.text, fontSize: 14 },
   messageTime: {
     fontSize: 11,
-    color: "#6b7280",
+    color: COLORS.textSecondary,
     textAlign: "right",
     marginTop: 4,
   },
@@ -272,16 +280,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginHorizontal: 6,
   },
-  driverBubbleAvatar: { backgroundColor: "#06b6d4" },
-  userBubbleAvatar: { backgroundColor: "#e5e7eb" },
-  bubbleAvatarText: { color: "#fff", fontWeight: "700" },
-  userAvatarText: { color: "#111827" },
+  driverBubbleAvatar: { backgroundColor: COLORS.accent },
+  userBubbleAvatar: { backgroundColor: COLORS.lightGray },
+  bubbleAvatarText: { color: COLORS.white, fontWeight: "700" },
+  userAvatarText: { color: COLORS.text },
 
-  footer: { borderTopWidth: 1, borderTopColor: "#e5e7eb", padding: 10 },
+  footer: { borderTopWidth: 1, borderTopColor: COLORS.border, padding: 10 },
   quickActions: { flexDirection: "row", gap: 8, marginBottom: 10 },
   actionButton: {
     flex: 1,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: COLORS.extraLightGray,
     paddingVertical: 8,
     borderRadius: 8,
     alignItems: "center",
@@ -289,19 +297,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
   },
-  actionText: { color: "#111827", fontSize: 13, fontWeight: "500" },
+  actionText: { color: COLORS.text, fontSize: 13, fontWeight: "500" },
 
   inputRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   input: {
     flex: 1,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: COLORS.extraLightGray,
     borderRadius: 50,
     paddingHorizontal: 14,
     paddingVertical: 8,
     fontSize: 14,
   },
   sendButton: {
-    backgroundColor: "#06b6d4",
+    backgroundColor: COLORS.primary,
     padding: 10,
     borderRadius: 50,
     alignItems: "center",

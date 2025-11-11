@@ -1,11 +1,20 @@
+import { COLORS, RADIUS, SHADOWS } from "@/constants/design";
 import { supabase } from "@/lib/supabase/client";
+import { LinearGradient } from "expo-linear-gradient";
 import {
+  Bell,
   ChevronLeft,
+  ChevronRight,
+  CreditCard,
   Edit2,
+  Gift,
+  HelpCircle,
+  History,
+  Lock,
   LogOut,
   Mail,
-  MapPin,
   Phone,
+  ShoppingBag,
   Star,
   User,
 } from "lucide-react-native";
@@ -29,7 +38,6 @@ interface UserInfo {
   name: string;
   phone: string;
   email: string;
-  address: string;
   rating: number;
   totalOrders: number;
   memberSince: string;
@@ -39,12 +47,11 @@ interface UserInfo {
 export default function AccountPage({ onNavigate, data }: AccountPageProps) {
   const [loading, setLoading] = useState(false);
   const [userLoading, setUserLoading] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0); // Add refresh trigger
+  const [refreshKey, setRefreshKey] = useState(0);
   const [userInfo, setUserInfo] = useState<UserInfo>({
     name: "User",
     phone: "",
     email: "",
-    address: "",
     rating: 0,
     totalOrders: 0,
     memberSince: "",
@@ -83,13 +90,12 @@ export default function AccountPage({ onNavigate, data }: AccountPageProps) {
         const userName = userData?.name || user.user_metadata?.name || "User";
         const userEmail = user.email || "";
         const userPhone = userData?.phone || user.user_metadata?.phone || "";
-        const userAddress = userData?.address || "";
         const userRating = userData?.rating || 0;
         const totalOrders = ordersCount || 0;
 
         // Format member since date
         const createdDate = new Date(userData?.created_at || user.created_at);
-        const memberSince = createdDate.toLocaleDateString("en-US", {
+        const memberSince = createdDate.toLocaleDateString("vi-VN", {
           month: "long",
           year: "numeric",
         });
@@ -106,7 +112,6 @@ export default function AccountPage({ onNavigate, data }: AccountPageProps) {
           name: userName,
           phone: userPhone,
           email: userEmail,
-          address: userAddress,
           rating: userRating,
           totalOrders: totalOrders,
           memberSince: memberSince,
@@ -153,7 +158,7 @@ export default function AccountPage({ onNavigate, data }: AccountPageProps) {
   if (userLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#06b6d4" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
         <Text style={styles.loadingText}>Đang tải thông tin...</Text>
       </View>
     );
@@ -161,145 +166,197 @@ export default function AccountPage({ onNavigate, data }: AccountPageProps) {
 
   return (
     <ScrollView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
+      {/* Header with Gradient */}
+      <LinearGradient
+        colors={[COLORS.primary, COLORS.secondary]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.header}
+      >
         <TouchableOpacity
           onPress={() => onNavigate("home")}
           style={styles.backButton}
         >
-          <ChevronLeft size={24} color="#fff" />
+          <ChevronLeft size={24} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Account</Text>
-      </View>
+        <Text style={styles.headerTitle}>Tài khoản</Text>
+        <View style={{ width: 40 }} />
+      </LinearGradient>
 
-      {/* Profile */}
+      {/* Profile Card with Gradient Avatar */}
       <View style={styles.profileCard}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{userInfo.avatar}</Text>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.name}>{userInfo.name}</Text>
-          <View style={styles.ratingRow}>
-            <Star size={16} color="#facc15" fill="#facc15" />
-            <Text style={styles.ratingValue}>{userInfo.rating}</Text>
-            <Text style={styles.orderCount}>
-              ({userInfo.totalOrders} orders)
+        <View style={styles.profileHeader}>
+          <LinearGradient
+            colors={[COLORS.primary, COLORS.secondary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.avatar}
+          >
+            <Text style={styles.avatarText}>{userInfo.avatar}</Text>
+          </LinearGradient>
+          <View style={styles.profileInfo}>
+            <Text style={styles.name}>{userInfo.name}</Text>
+            <View style={styles.ratingRow}>
+              <Star size={16} color="#facc15" fill="#facc15" />
+              <Text style={styles.ratingValue}>{userInfo.rating}</Text>
+              <Text style={styles.orderCount}>
+                ({userInfo.totalOrders} đơn hàng)
+              </Text>
+            </View>
+            <Text style={styles.memberSince}>
+              Thành viên từ {userInfo.memberSince}
             </Text>
           </View>
-          <Text style={styles.memberSince}>
-            Member since {userInfo.memberSince}
-          </Text>
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={() => onNavigate("profile")}
+          >
+            <Edit2 size={20} color={COLORS.primary} />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity onPress={() => onNavigate("profile")}>
-          <Edit2 size={20} color="#06b6d4" />
-        </TouchableOpacity>
       </View>
 
-      {/* Account Info */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Account Information</Text>
-
-        <View style={styles.infoItem}>
-          <View style={styles.iconWrapper}>
-            <User size={18} color="#06b6d4" />
+      {/* Stats Cards */}
+      <View style={styles.statsSection}>
+        <View style={styles.statCard}>
+          <View
+            style={[
+              styles.statIconCircle,
+              { backgroundColor: `${COLORS.primary}15` },
+            ]}
+          >
+            <ShoppingBag size={24} color={COLORS.primary} />
           </View>
-          <View style={styles.infoText}>
-            <Text style={styles.infoLabel}>Full Name</Text>
+          <Text style={styles.statValue}>{userInfo.totalOrders}</Text>
+          <Text style={styles.statLabel}>Tổng đơn</Text>
+        </View>
+        <View style={styles.statCard}>
+          <View
+            style={[
+              styles.statIconCircle,
+              { backgroundColor: `${COLORS.accent}15` },
+            ]}
+          >
+            <Star size={24} color={COLORS.accent} />
+          </View>
+          <Text style={styles.statValue}>{userInfo.rating}</Text>
+          <Text style={styles.statLabel}>Đánh giá</Text>
+        </View>
+        <View style={styles.statCard}>
+          <View
+            style={[
+              styles.statIconCircle,
+              { backgroundColor: `${COLORS.secondary}15` },
+            ]}
+          >
+            <Gift size={24} color={COLORS.secondary} />
+          </View>
+          <Text style={styles.statValue}>5</Text>
+          <Text style={styles.statLabel}>Ưu đãi</Text>
+        </View>
+      </View>
+
+      {/* Account Info Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Thông tin tài khoản</Text>
+
+        <View style={styles.infoCard}>
+          <View style={styles.iconCircle}>
+            <User size={20} color={COLORS.primary} />
+          </View>
+          <View style={styles.infoContent}>
+            <Text style={styles.infoLabel}>Họ và tên</Text>
             <Text style={styles.infoValue}>{userInfo.name}</Text>
           </View>
         </View>
 
-        <View style={styles.infoItem}>
-          <View style={styles.iconWrapper}>
-            <Phone size={18} color="#06b6d4" />
+        <View style={styles.infoCard}>
+          <View style={styles.iconCircle}>
+            <Phone size={20} color={COLORS.primary} />
           </View>
-          <View style={styles.infoText}>
-            <Text style={styles.infoLabel}>Phone Number</Text>
-            <Text style={styles.infoValue}>{userInfo.phone}</Text>
+          <View style={styles.infoContent}>
+            <Text style={styles.infoLabel}>Số điện thoại</Text>
+            <Text style={styles.infoValue}>
+              {userInfo.phone || "Chưa cập nhật"}
+            </Text>
           </View>
         </View>
 
-        <View style={styles.infoItem}>
-          <View style={styles.iconWrapper}>
-            <Mail size={18} color="#06b6d4" />
+        <View style={styles.infoCard}>
+          <View style={styles.iconCircle}>
+            <Mail size={20} color={COLORS.primary} />
           </View>
-          <View style={styles.infoText}>
-            <Text style={styles.infoLabel}>Email Address</Text>
+          <View style={styles.infoContent}>
+            <Text style={styles.infoLabel}>Email</Text>
             <Text style={styles.infoValue}>{userInfo.email}</Text>
           </View>
         </View>
-
-        <View style={styles.infoItem}>
-          <View style={styles.iconWrapper}>
-            <MapPin size={18} color="#06b6d4" />
-          </View>
-          <View style={styles.infoText}>
-            <Text style={styles.infoLabel}>Delivery Address</Text>
-            <Text style={styles.infoValue}>{userInfo.address}</Text>
-          </View>
-        </View>
       </View>
 
-      {/* Stats */}
+      {/* Settings Menu */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Your Stats</Text>
-        <View style={styles.statsRow}>
-          <View style={[styles.statBox, { backgroundColor: "#ecfeff" }]}>
-            <Text style={[styles.statValue, { color: "#06b6d4" }]}>
-              {userInfo.totalOrders}
-            </Text>
-            <Text style={styles.statLabel}>Total Orders</Text>
-          </View>
-          <View style={[styles.statBox, { backgroundColor: "#fef9c3" }]}>
-            <Text style={[styles.statValue, { color: "#f59e0b" }]}>
-              {userInfo.rating}
-            </Text>
-            <Text style={styles.statLabel}>Rating</Text>
-          </View>
-          <View style={[styles.statBox, { backgroundColor: "#dcfce7" }]}>
-            <Text style={[styles.statValue, { color: "#16a34a" }]}>5</Text>
-            <Text style={styles.statLabel}>Vouchers</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Settings */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Settings</Text>
+        <Text style={styles.sectionTitle}>Cài đặt</Text>
 
         {[
-          { label: "📜 Lịch sử đơn hàng", page: "history", icon: "history" },
-          { label: "🔔 Thông báo", icon: "notification" },
-          { label: "💳 Phương thức thanh toán", icon: "payment" },
-          { label: "🔒 Quyền riêng tư", icon: "privacy" },
-          { label: "❓ Trợ giúp", icon: "help" },
-        ].map((item, i) => (
-          <TouchableOpacity
-            key={i}
-            style={styles.settingItem}
-            onPress={() => item.page && onNavigate(item.page)}
-          >
-            <Text style={styles.settingLabel}>{item.label}</Text>
-            <Text style={styles.settingArrow}>→</Text>
-          </TouchableOpacity>
-        ))}
+          {
+            label: "Lịch sử đơn hàng",
+            page: "history",
+            icon: History,
+            color: COLORS.primary,
+          },
+          { label: "Thông báo", icon: Bell, color: COLORS.secondary },
+          {
+            label: "Phương thức thanh toán",
+            icon: CreditCard,
+            color: COLORS.accent,
+          },
+          { label: "Quyền riêng tư", icon: Lock, color: "#8b5cf6" },
+          { label: "Trợ giúp", icon: HelpCircle, color: "#06b6d4" },
+        ].map((item, i) => {
+          const IconComponent = item.icon;
+          return (
+            <TouchableOpacity
+              key={i}
+              style={styles.menuCard}
+              onPress={() => item.page && onNavigate(item.page)}
+            >
+              <View
+                style={[
+                  styles.menuIcon,
+                  { backgroundColor: `${item.color}15` },
+                ]}
+              >
+                <IconComponent size={22} color={item.color} />
+              </View>
+              <Text style={styles.menuLabel}>{item.label}</Text>
+              <ChevronRight size={20} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
-      {/* Logout */}
+      {/* Logout Button */}
       <View style={styles.logoutSection}>
         <TouchableOpacity
           style={styles.logoutButton}
           onPress={handleLogout}
           disabled={loading}
         >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <LogOut size={20} color="#fff" />
-              <Text style={styles.logoutText}>Đăng xuất</Text>
-            </>
-          )}
+          <LinearGradient
+            colors={["#ef4444", "#dc2626"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.logoutGradient}
+          >
+            {loading ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <>
+                <LogOut size={20} color="#ffffff" />
+                <Text style={styles.logoutText}>Đăng xuất</Text>
+              </>
+            )}
+          </LinearGradient>
         </TouchableOpacity>
       </View>
 
@@ -313,100 +370,233 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
   },
   loadingText: {
     marginTop: 12,
-    fontSize: 14,
-    color: "#6b7280",
+    fontSize: 15,
+    color: COLORS.textSecondary,
+    fontWeight: "500",
   },
-  iconWrapper: {
+
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+
+  // Header
+  header: {
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    paddingTop: 50,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: "#e0f2fe",
+    borderRadius: RADIUS.full,
+    backgroundColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
     justifyContent: "center",
   },
-  container: { flex: 1, backgroundColor: "#fff" },
-  header: {
-    backgroundColor: "#06b6d4",
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
+  headerTitle: {
+    color: "#ffffff",
+    fontSize: 20,
+    fontWeight: "700",
   },
-  backButton: { marginRight: 12 },
-  headerTitle: { color: "#fff", fontSize: 20, fontWeight: "700" },
 
+  // Profile Card
   profileCard: {
+    backgroundColor: COLORS.surface,
+    margin: 16,
+    borderRadius: RADIUS.l,
+    padding: 20,
+    ...SHADOWS.medium,
+  },
+  profileHeader: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#e0f2fe",
-    margin: 16,
-    borderRadius: 12,
-    padding: 16,
   },
   avatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: "#06b6d4",
+    width: 80,
+    height: 80,
+    borderRadius: RADIUS.full,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 16,
+    ...SHADOWS.small,
   },
-  avatarText: { color: "#fff", fontWeight: "700", fontSize: 24 },
-  name: { fontSize: 18, fontWeight: "700" },
-  ratingRow: { flexDirection: "row", alignItems: "center", marginTop: 4 },
-  ratingValue: { fontWeight: "600", marginLeft: 4 },
-  orderCount: { fontSize: 12, color: "#6b7280", marginLeft: 4 },
-  memberSince: { fontSize: 12, color: "#9ca3af", marginTop: 2 },
-
-  section: { marginHorizontal: 16, marginTop: 10 },
-  sectionTitle: { fontWeight: "700", fontSize: 16, marginBottom: 10 },
-
-  infoItem: {
+  avatarText: {
+    color: "#ffffff",
+    fontWeight: "700",
+    fontSize: 32,
+  },
+  profileInfo: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  name: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  ratingRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f9fafb",
-    padding: 10,
-    borderRadius: 10,
+    marginBottom: 4,
+  },
+  ratingValue: {
+    fontWeight: "600",
+    fontSize: 15,
+    color: COLORS.text,
+    marginLeft: 4,
+  },
+  orderCount: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginLeft: 4,
+  },
+  memberSince: {
+    fontSize: 12,
+    color: COLORS.textLight,
+  },
+  editButton: {
+    width: 40,
+    height: 40,
+    borderRadius: RADIUS.full,
+    backgroundColor: `${COLORS.primary}15`,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // Stats Section
+  statsSection: {
+    flexDirection: "row",
+    gap: 12,
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.l,
+    padding: 16,
+    alignItems: "center",
+    ...SHADOWS.small,
+  },
+  statIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: RADIUS.full,
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 8,
   },
-  infoText: { marginLeft: 10 },
-  infoLabel: { fontSize: 12, color: "#6b7280" },
-  infoValue: { fontSize: 14, fontWeight: "600", color: "#111827" },
-
-  statsRow: { flexDirection: "row", justifyContent: "space-between" },
-  statBox: {
-    flex: 1,
-    marginHorizontal: 4,
-    borderRadius: 10,
-    padding: 12,
-    alignItems: "center",
+  statValue: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: COLORS.text,
+    marginBottom: 4,
   },
-  statValue: { fontSize: 20, fontWeight: "700" },
-  statLabel: { fontSize: 12, color: "#6b7280", marginTop: 4 },
+  statLabel: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    textAlign: "center",
+  },
 
-  settingItem: {
+  // Section
+  section: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontWeight: "700",
+    fontSize: 18,
+    color: COLORS.text,
+    marginBottom: 12,
+  },
+
+  // Info Card
+  infoCard: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 12,
-    borderBottomWidth: 0.5,
-    borderColor: "#e5e7eb",
+    alignItems: "center",
+    backgroundColor: COLORS.surface,
+    padding: 16,
+    borderRadius: RADIUS.l,
+    marginBottom: 12,
+    ...SHADOWS.small,
   },
-  settingLabel: { fontSize: 14, fontWeight: "600" },
-  settingArrow: { color: "#9ca3af" },
+  iconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: RADIUS.full,
+    backgroundColor: `${COLORS.primary}15`,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  infoContent: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginBottom: 4,
+    fontWeight: "500",
+  },
+  infoValue: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: COLORS.text,
+  },
 
-  logoutSection: { padding: 16 },
+  // Menu Card
+  menuCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.surface,
+    padding: 16,
+    borderRadius: RADIUS.l,
+    marginBottom: 12,
+    ...SHADOWS.small,
+  },
+  menuIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: RADIUS.m,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  menuLabel: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "600",
+    color: COLORS.text,
+  },
+
+  // Logout
+  logoutSection: {
+    paddingHorizontal: 16,
+    marginBottom: 20,
+  },
   logoutButton: {
+    borderRadius: RADIUS.l,
+    overflow: "hidden",
+    ...SHADOWS.medium,
+  },
+  logoutGradient: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#ef4444",
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 16,
     gap: 8,
   },
-  logoutText: { color: "#fff", fontWeight: "700", marginLeft: 6 },
+  logoutText: {
+    color: "#ffffff",
+    fontWeight: "700",
+    fontSize: 16,
+  },
 });

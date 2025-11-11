@@ -1,14 +1,22 @@
+import { FoodCard } from "@/components/FoodCard";
+import { FoodCardSkeleton } from "@/components/Skeleton";
+import {
+  COLORS,
+  RADIUS,
+  SHADOWS,
+  SPACING,
+  TYPOGRAPHY,
+} from "@/constants/design";
 import { supabase } from "@/lib/supabase/client";
 import { useCart } from "@/store/cart-context";
-import { Search } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Bell, ChevronDown, MapPin, Search } from "lucide-react-native";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  FlatList,
-  Image,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -39,17 +47,7 @@ interface FoodItem {
   price: number | null;
   rating: number | null;
   category: string | null;
-  collection: string | null;
-}
-
-interface Restaurant {
-  id: string | number;
-  name: string;
-  cuisine: string | null;
-  time_minutes: number | null;
-  rating: number | null;
-  image_url: string | null;
-  tags: string[] | null;
+  collection?: string | null;
 }
 
 const ICON_BY_CATEGORY: Record<string, string> = {
@@ -57,16 +55,6 @@ const ICON_BY_CATEGORY: Record<string, string> = {
   healthy: "🥗",
   drink: "🥤",
   fastfood: "🍔",
-};
-
-const LABEL_BY_COLLECTION: Record<
-  string,
-  { name: string; color: string; icon: string }
-> = {
-  freeship: { name: "FREESHIP", color: "#a7f3d0", icon: "🍱" },
-  "deal-1": { name: "DEAL $1", color: "#fde68a", icon: "🍦" },
-  "near-you": { name: "NEAR YOU", color: "#bfdbfe", icon: "🍔" },
-  popular: { name: "POPULAR", color: "#e9d5ff", icon: "⭐" },
 };
 
 const DEALS_LIMIT = 4;
@@ -79,311 +67,368 @@ export default function HomePage({
 }: HomePageProps) {
   const [deals, setDeals] = useState<FoodItem[]>([]);
   const [foods, setFoods] = useState<FoodItem[]>([]);
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-  const [collections, setCollections] = useState<string[]>([]);
-  const [voucherCount, setVoucherCount] = useState<number | null>(null);
   const [activeCategory, setActiveCategory] = useState("all");
-  const [activeCollection, setActiveCollection] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [cartKey, setCartKey] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // 🛒 Lấy context cart realtime
-  const { setCartCount } = useCart();
+  const { cartCount } = useCart();
 
-  // ✅ Lấy danh mục và bộ sưu tập
+  // ✅ Fetch categories & data
   useEffect(() => {
-    const loadMeta = async () => {
-      const { data, error } = await supabase
-        .from("food_items")
-        .select("category, collection");
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-      if (!error && data) {
+  const loadData = async () => {
+    try {
+      setLoading(true);
+
+      // Get categories
+      const { data: categoryData } = await supabase
+        .from("food_items")
+        .select("category");
+
+      if (categoryData) {
         const categoriesList = Array.from(
           new Set(
-            data
+            categoryData
               .map((r: any) => r.category?.trim().toLowerCase())
               .filter((v: string | undefined): v is string => !!v)
           )
         );
-
-        const collectionsList = Array.from(
-          new Set(
-            data
-              .map((r: any) => r.collection?.trim().toLowerCase())
-              .filter((v: string | undefined): v is string => !!v)
-          )
-        );
-
         setCategories(categoriesList as string[]);
-        setCollections(collectionsList as string[]);
       }
-    };
-    loadMeta();
-  }, []);
 
-  // ✅ Lấy danh sách nhà hàng
-  useEffect(() => {
-    const loadRestaurants = async () => {
-      const { data } = await supabase
-        .from("restaurants")
-        .select("id, name, cuisine, time_minutes, rating, image_url, tags")
+      await fetchFoods();
+    } catch (err) {
+      console.error("Load error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchFoods = async () => {
+    let baseQuery = supabase
+      .from("food_items")
+      .select("id, name, image_url, price, rating, category");
+
+    if (activeCategory !== "all")
+      baseQuery = baseQuery.eq("category", activeCategory);
+
+    const [{ data: dealsData }, { data: foodsData }] = await Promise.all([
+      baseQuery
+        .gt("rating", 4.5)
         .order("rating", { ascending: false })
-        .limit(10);
-      setRestaurants(data ?? []);
-    };
-    loadRestaurants();
-  }, []);
+        .limit(DEALS_LIMIT),
+      baseQuery.order("rating", { ascending: false }).limit(PRODUCTS_LIMIT),
+    ]);
 
-  // ✅ Đếm số lượng voucher hoạt động
+    setDeals(dealsData ?? []);
+    setFoods(foodsData ?? []);
+  };
+
   useEffect(() => {
-    const fetchActiveVoucherCount = async () => {
-      const { data } = await supabase
-        .from("vouchers")
-        .select("id, expiry_date, status");
-      if (data) {
-        const today = new Date().setHours(0, 0, 0, 0);
-        const active = data.filter((v: any) => {
-          const s =
-            v.status && v.status !== "active"
-              ? v.status
-              : new Date(v.expiry_date).getTime() < today
-              ? "expired"
-              : "active";
-          return s === "active";
-        }).length;
-        setVoucherCount(active);
-      }
-    };
-    fetchActiveVoucherCount().catch(() => setVoucherCount(null));
-  }, []);
+    fetchFoods();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCategory]);
 
-  // ✅ Lấy món ăn (deal + food)
-  useEffect(() => {
-    const fetchData = async () => {
-      let baseQuery = supabase
-        .from("food_items")
-        .select("id, name, image_url, price, rating, category, collection");
-
-      if (activeCategory !== "all")
-        baseQuery = baseQuery.eq("category", activeCategory);
-      if (activeCollection !== "all")
-        baseQuery = baseQuery.eq("collection", activeCollection);
-      if (searchQuery.trim())
-        baseQuery = baseQuery.ilike("name", `%${searchQuery.trim()}%`);
-
-      const dealsQuery = baseQuery
-        .ilike("collection", "%deal%")
-        .order("rating", { ascending: false })
-        .limit(DEALS_LIMIT);
-
-      const foodsQuery = baseQuery
-        .order("rating", { ascending: false })
-        .limit(PRODUCTS_LIMIT);
-
-      const [{ data: dealsData }, { data: foodsData }] = await Promise.all([
-        dealsQuery,
-        foodsQuery,
-      ]);
-
-      setDeals(dealsData ?? []);
-      setFoods(foodsData ?? []);
-    };
-    fetchData();
-  }, [activeCategory, activeCollection, searchQuery]);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
+  };
 
   // ✅ Dữ liệu hiển thị
   const uiCategories = useMemo(
-    () =>
-      categories.map((id) => ({
+    () => [
+      { id: "all", name: "TẤT CẢ", icon: "🍽️" },
+      ...categories.map((id) => ({
         id,
         name: id.toUpperCase(),
         icon: ICON_BY_CATEGORY[id] ?? "🍽️",
       })),
+    ],
     [categories]
-  );
-
-  const uiCollections = useMemo(
-    () =>
-      collections.map((id) => {
-        const meta = LABEL_BY_COLLECTION[id] ?? {
-          name: id.toUpperCase(),
-          color: "#e5e7eb",
-          icon: "🧩",
-        };
-        return { id, ...meta };
-      }),
-    [collections]
   );
 
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={{ paddingBottom: 100 }}
+      contentContainerStyle={{ paddingBottom: SPACING.bottomNav }}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
     >
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>🏠 Home</Text>
-        <View style={styles.searchBox}>
-          <Search size={18} color="#999" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Tìm kiếm món ăn..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            onSubmitEditing={() => {
-              if (searchQuery.trim()) {
-                onNavigate("search", { initialQuery: searchQuery.trim() });
-              }
-            }}
-          />
-        </View>
-      </View>
-
-      {/* Categories */}
-      <FlatList
-        horizontal
-        data={uiCategories}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.categoryList}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.categoryItem,
-              activeCategory === item.id && styles.categoryActive,
-            ]}
-            onPress={() =>
-              setActiveCategory(activeCategory === item.id ? "all" : item.id)
-            }
-          >
-            <Text style={styles.categoryIcon}>{item.icon}</Text>
-            <Text style={styles.categoryText}>{item.name}</Text>
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={[COLORS.primary, COLORS.secondary]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <View style={styles.headerTop}>
+          <View style={styles.locationRow}>
+            <MapPin size={20} color="#fff" />
+            <Text style={styles.locationText}>Delivering to Home</Text>
+            <ChevronDown size={16} color="#fff" />
+          </View>
+          <TouchableOpacity style={styles.notificationBtn}>
+            <Bell size={22} color="#fff" />
+            {cartCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{cartCount}</Text>
+              </View>
+            )}
           </TouchableOpacity>
-        )}
-      />
+        </View>
 
-      {/* Products */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Sản phẩm nổi bật</Text>
-        <View style={styles.grid}>
-          {foods.map((f) => (
+        {/* Search Bar */}
+        <TouchableOpacity
+          style={styles.searchBox}
+          onPress={() => onNavigate("search", {})}
+        >
+          <Search size={20} color={COLORS.textSecondary} />
+          <Text style={styles.searchPlaceholder}>Tìm món ăn yêu thích...</Text>
+        </TouchableOpacity>
+      </LinearGradient>
+
+      {/* Categories Horizontal Scroll */}
+      <View style={styles.categoriesSection}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryList}
+        >
+          {uiCategories.map((item) => (
             <TouchableOpacity
-              key={f.id}
-              style={styles.card}
-              onPress={() => onNavigate("food-details", f)}
+              key={item.id}
+              style={[
+                styles.categoryChip,
+                activeCategory === item.id && styles.categoryChipActive,
+              ]}
+              onPress={() => setActiveCategory(item.id)}
             >
-              <Image
-                source={
-                  f.image_url && IMAGE_MAP[f.image_url]
-                    ? IMAGE_MAP[f.image_url]
-                    : require("@/assets/public/placeholder.jpg")
-                }
-                style={styles.cardImg}
-              />
-              <Text style={styles.cardTitle}>{f.name}</Text>
-              <Text style={styles.cardSubtitle}>
-                ⭐ {f.rating ?? "—"} | ${f.price ?? "—"}
+              <Text style={styles.categoryIcon}>{item.icon}</Text>
+              <Text
+                style={[
+                  styles.categoryText,
+                  activeCategory === item.id && styles.categoryTextActive,
+                ]}
+              >
+                {item.name}
               </Text>
             </TouchableOpacity>
           ))}
-        </View>
+        </ScrollView>
       </View>
 
-      {/* Deals */}
+      {/* Deals Section */}
+      {deals.length > 0 && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>🔥 Hot Deals Today</Text>
+            <Text style={styles.seeAll}>Xem tất cả</Text>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.dealsScroll}
+          >
+            {loading ? (
+              <>
+                <FoodCardSkeleton />
+                <FoodCardSkeleton />
+              </>
+            ) : (
+              deals.map((item) => (
+                <FoodCard
+                  key={item.id}
+                  id={item.id}
+                  name={item.name}
+                  image={
+                    item.image_url && IMAGE_MAP[item.image_url]
+                      ? IMAGE_MAP[item.image_url]
+                      : require("@/assets/public/placeholder.jpg")
+                  }
+                  price={item.price ?? 0}
+                  rating={item.rating ?? 0}
+                  isFavorite={favorites.some((f) => f.id === item.id)}
+                  onPress={() => onNavigate("food-details", item)}
+                  onFavoritePress={() => onToggleFavorite(item)}
+                />
+              ))
+            )}
+          </ScrollView>
+        </View>
+      )}
+
+      {/* All Foods Grid */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Giảm giá đến 50%</Text>
-        {deals.length === 0 ? (
-          <Text style={styles.emptyText}>Chưa có deal nào.</Text>
-        ) : (
-          deals.map((d) => (
-            <TouchableOpacity
-              key={d.id}
-              onPress={() => onNavigate("food-details", d)}
-              style={styles.dealCard}
-            >
-              <Image
-                source={
-                  d.image_url && IMAGE_MAP[d.image_url]
-                    ? IMAGE_MAP[d.image_url]
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Khám phá món ngon</Text>
+          <Text style={styles.seeAll}>Xem tất cả</Text>
+        </View>
+        <View style={styles.foodGrid}>
+          {loading ? (
+            <>
+              <FoodCardSkeleton />
+              <FoodCardSkeleton />
+              <FoodCardSkeleton />
+              <FoodCardSkeleton />
+            </>
+          ) : foods.length === 0 ? (
+            <Text style={styles.emptyText}>Không tìm thấy món ăn phù hợp</Text>
+          ) : (
+            foods.map((item) => (
+              <FoodCard
+                key={item.id}
+                id={item.id}
+                name={item.name}
+                image={
+                  item.image_url && IMAGE_MAP[item.image_url]
+                    ? IMAGE_MAP[item.image_url]
                     : require("@/assets/public/placeholder.jpg")
                 }
-                style={styles.dealImg}
+                price={item.price ?? 0}
+                rating={item.rating ?? 0}
+                isFavorite={favorites.some((f) => f.id === item.id)}
+                onPress={() => onNavigate("food-details", item)}
+                onFavoritePress={() => onToggleFavorite(item)}
               />
-              <View style={styles.dealOverlay}>
-                <Text style={styles.dealName}>{d.name}</Text>
-                <Text style={styles.dealRating}>⭐ {d.rating ?? "—"}</Text>
-              </View>
-            </TouchableOpacity>
-          ))
-        )}
+            ))
+          )}
+        </View>
       </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  header: { backgroundColor: "#06b6d4", padding: 16 },
-  headerTitle: {
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  header: {
+    paddingTop: SPACING.xl,
+    paddingHorizontal: SPACING.m,
+    paddingBottom: SPACING.l,
+  },
+  headerTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: SPACING.m,
+  },
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.xs,
+  },
+  locationText: {
+    ...TYPOGRAPHY.body,
     color: "#fff",
-    fontSize: 22,
+    fontWeight: "600",
+  },
+  notificationBtn: {
+    position: "relative",
+  },
+  badge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: COLORS.accent,
+    borderRadius: RADIUS.full,
+    width: 18,
+    height: 18,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  badgeText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.dark,
+    fontSize: 10,
     fontWeight: "700",
-    marginBottom: 8,
   },
   searchBox: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    borderRadius: RADIUS.l,
+    paddingHorizontal: SPACING.m,
+    paddingVertical: SPACING.s,
+    gap: SPACING.s,
+    ...SHADOWS.medium,
   },
-  searchInput: { flex: 1, marginLeft: 8, fontSize: 14, color: "#333" },
-  categoryList: { paddingHorizontal: 10, marginTop: 10 },
-  categoryItem: {
+  searchPlaceholder: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.textLight,
+  },
+  categoriesSection: {
+    paddingVertical: SPACING.m,
+  },
+  categoryList: {
+    paddingHorizontal: SPACING.m,
+    gap: SPACING.s,
+  },
+  categoryChip: {
+    flexDirection: "row",
     alignItems: "center",
-    marginRight: 16,
-    padding: 10,
-    borderRadius: 10,
-    backgroundColor: "#f3f4f6",
+    paddingHorizontal: SPACING.m,
+    paddingVertical: SPACING.xs,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.surface,
+    gap: SPACING.xs,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  categoryActive: { backgroundColor: "#bae6fd" },
-  categoryIcon: { fontSize: 22 },
-  categoryText: { marginTop: 4, fontSize: 12, color: "#333" },
-  section: { padding: 16 },
-  sectionTitle: { fontSize: 18, fontWeight: "700", marginBottom: 10 },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  card: {
-    width: "47%",
-    borderRadius: 10,
-    backgroundColor: "#f9fafb",
-    paddingBottom: 8,
-    overflow: "hidden",
+  categoryChipActive: {
+    backgroundColor: COLORS.primaryLight,
+    borderColor: COLORS.primary,
   },
-  cardImg: {
-    width: "100%",
-    height: 100,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
+  categoryIcon: {
+    fontSize: 18,
   },
-  cardTitle: {
+  categoryText: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.text,
     fontWeight: "600",
-    fontSize: 14,
-    marginTop: 6,
-    marginHorizontal: 6,
   },
-  cardSubtitle: { fontSize: 12, color: "#666", marginHorizontal: 6 },
-  dealCard: { borderRadius: 10, overflow: "hidden", marginBottom: 10 },
-  dealImg: { width: "100%", height: 140 },
-  dealOverlay: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 8,
-    backgroundColor: "rgba(0,0,0,0.3)",
+  categoryTextActive: {
+    color: COLORS.primary,
   },
-  dealName: { color: "#fff", fontWeight: "700" },
-  dealRating: { color: "#fff", fontSize: 12 },
-  emptyText: { color: "#888", fontSize: 13 },
+  section: {
+    paddingHorizontal: SPACING.m,
+    marginBottom: SPACING.xl,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: SPACING.m,
+  },
+  sectionTitle: {
+    ...TYPOGRAPHY.h3,
+    color: COLORS.text,
+  },
+  seeAll: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.primary,
+    fontWeight: "600",
+  },
+  dealsScroll: {
+    gap: SPACING.m,
+    paddingRight: SPACING.m,
+  },
+  foodGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: SPACING.m,
+  },
+  emptyText: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.textLight,
+    textAlign: "center",
+    marginTop: SPACING.xl,
+  },
 });
