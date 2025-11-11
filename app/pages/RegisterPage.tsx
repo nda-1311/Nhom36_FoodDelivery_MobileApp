@@ -4,7 +4,6 @@ import { validateRegisterForm } from "@/utils/validation";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   ImageBackground,
   KeyboardAvoidingView,
   Platform,
@@ -15,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Toast, { ToastType } from "@/components/Toast";
 
 export default function RegisterPage({ onNavigate }: RegisterPageProps) {
   const [email, setEmail] = useState("");
@@ -30,6 +30,11 @@ export default function RegisterPage({ onNavigate }: RegisterPageProps) {
   const [nameError, setNameError] = useState("");
   const [phoneError, setPhoneError] = useState("");
   const [registerError, setRegisterError] = useState("");
+
+  // Toast state
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState<ToastType>("success");
 
   const validate = (): boolean => {
     const { valid, errors } = validateRegisterForm({
@@ -83,16 +88,14 @@ export default function RegisterPage({ onNavigate }: RegisterPageProps) {
       setLoading(false);
 
       // Hiển thị thông báo thành công
-      Alert.alert(
-        "Đăng ký thành công! 🎉",
-        "Vui lòng kiểm tra email để xác nhận tài khoản của bạn.",
-        [
-          {
-            text: "OK",
-            onPress: () => onNavigate("login"),
-          },
-        ]
-      );
+      setToastMessage("Đăng ký thành công! 🎉 Vui lòng kiểm tra email để xác nhận tài khoản.");
+      setToastType("success");
+      setShowToast(true);
+      
+      // Chuyển sang trang login sau 3 giây
+      setTimeout(() => {
+        onNavigate("login");
+      }, 3000);
     } catch {
       setRegisterError("Có lỗi xảy ra. Vui lòng thử lại!");
       setLoading(false);
@@ -107,6 +110,13 @@ export default function RegisterPage({ onNavigate }: RegisterPageProps) {
       resizeMode="cover"
       style={styles.container}
     >
+      <Toast
+        visible={showToast}
+        message={toastMessage}
+        type={toastType}
+        duration={3000}
+        onHide={() => setShowToast(false)}
+      />
       <View style={styles.overlay} />
       <KeyboardAvoidingView
         style={styles.content}

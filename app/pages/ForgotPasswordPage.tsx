@@ -1,4 +1,3 @@
-import { useToast } from "@/hooks/use-toast";
 import { generateOTP, sendOTPEmail } from "@/lib/emailService";
 import { supabase } from "@/lib/supabase/client";
 import { ForgotPasswordPageProps } from "@/types/auth";
@@ -15,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Toast, { ToastType } from "@/components/Toast";
 
 type Step = "email" | "verify";
 
@@ -28,7 +28,6 @@ interface ValidationErrors {
 export default function ForgotPasswordPage({
   onNavigate,
 }: ForgotPasswordPageProps) {
-  const { toast } = useToast();
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -36,6 +35,11 @@ export default function ForgotPasswordPage({
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
+
+  // Toast state
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState<ToastType>("success");
 
   // 📧 Bước 1: Gửi OTP về email
   const handleSendOTP = async () => {
@@ -66,11 +70,9 @@ export default function ForgotPasswordPage({
       if (supabaseOtpError) {
         console.error("Supabase OTP error:", supabaseOtpError);
         setErrors({ email: "Email không tồn tại trong hệ thống" });
-        toast({
-          title: "Lỗi",
-          description: "Email không tồn tại trong hệ thống",
-          variant: "destructive",
-        });
+        setToastMessage("Email không tồn tại trong hệ thống");
+        setToastType("error");
+        setShowToast(true);
         return;
       }
 
@@ -90,11 +92,9 @@ export default function ForgotPasswordPage({
 
       if (insertError) {
         console.error("Insert OTP error:", insertError);
-        toast({
-          title: "Lỗi",
-          description: "Không thể lưu mã OTP",
-          variant: "destructive",
-        });
+        setToastMessage("Không thể lưu mã OTP");
+        setToastType("error");
+        setShowToast(true);
         return;
       }
 
@@ -102,29 +102,21 @@ export default function ForgotPasswordPage({
       const emailSent = await sendOTPEmail(email.trim(), generatedOTP);
 
       if (!emailSent) {
-        toast({
-          title: "Lỗi",
-          description:
-            "Không thể gửi email. Vui lòng kiểm tra cấu hình EmailJS.",
-          variant: "destructive",
-        });
+        setToastMessage("Không thể gửi email. Vui lòng kiểm tra cấu hình EmailJS.");
+        setToastType("error");
+        setShowToast(true);
         return;
       }
 
       setStep("verify");
-      toast({
-        title: "Thành công",
-        description:
-          "Mã OTP 6 số đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.",
-        variant: "success",
-      });
+      setToastMessage("Mã OTP 6 số đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.");
+      setToastType("success");
+      setShowToast(true);
     } catch (error: any) {
       console.error("Send OTP error:", error);
-      toast({
-        title: "Lỗi",
-        description: error.message || "Không thể gửi mã OTP",
-        variant: "destructive",
-      });
+      setToastMessage(error.message || "Không thể gửi mã OTP");
+      setToastType("error");
+      setShowToast(true);
     } finally {
       setLoading(false);
     }
@@ -183,11 +175,9 @@ export default function ForgotPasswordPage({
 
       if (error) {
         console.error("❌ RPC error:", error);
-        toast({
-          title: "Lỗi",
-          description: `Không thể đổi mật khẩu: ${error.message}`,
-          variant: "destructive",
-        });
+        setToastMessage(`Không thể đổi mật khẩu: ${error.message}`);
+        setToastType("error");
+        setShowToast(true);
         return;
       }
 
@@ -198,25 +188,19 @@ export default function ForgotPasswordPage({
         console.log("❌ Failed:", data?.error);
         const errorMsg = data?.error || "Mã OTP không đúng hoặc đã hết hạn";
         setErrors({ otp: errorMsg });
-        toast({
-          title: "Lỗi",
-          description: errorMsg,
-          variant: "destructive",
-        });
+        setToastMessage(errorMsg);
+        setToastType("error");
+        setShowToast(true);
         return;
       }
 
       // Thành công!
       console.log("🎉 Success! Showing toast...");
-      toast({
-        title: "✅ Thành Công!",
-        description:
-          "Mật khẩu đã được đổi thành công! Bạn có thể đăng nhập bằng mật khẩu mới.",
-        variant: "success",
-        duration: 3000,
-      });
+      setToastMessage("Mật khẩu đã được đổi thành công! 🎉 Bạn có thể đăng nhập bằng mật khẩu mới.");
+      setToastType("success");
+      setShowToast(true);
 
-      // Navigate sau 1.5s
+      // Navigate sau 3s để người dùng thấy thông báo
       setTimeout(() => {
         console.log("Navigating to login...");
         setStep("email");
@@ -226,14 +210,12 @@ export default function ForgotPasswordPage({
         setConfirmPassword("");
         setErrors({});
         onNavigate("login");
-      }, 1500);
+      }, 3000);
     } catch (error: any) {
       console.error("Reset password error:", error);
-      toast({
-        title: "Lỗi",
-        description: error.message || "Không thể đổi mật khẩu",
-        variant: "destructive",
-      });
+      setToastMessage(error.message || "Không thể đổi mật khẩu");
+      setToastType("error");
+      setShowToast(true);
     } finally {
       setLoading(false);
     }
@@ -247,6 +229,13 @@ export default function ForgotPasswordPage({
       resizeMode="cover"
       style={styles.background}
     >
+      <Toast
+        visible={showToast}
+        message={toastMessage}
+        type={toastType}
+        duration={3000}
+        onHide={() => setShowToast(false)}
+      />
       <View style={styles.overlay} />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}

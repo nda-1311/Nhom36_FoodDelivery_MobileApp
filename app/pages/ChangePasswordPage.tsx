@@ -3,7 +3,6 @@ import { Check, ChevronLeft, Eye, EyeOff, Lock } from "lucide-react-native";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -12,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Toast, { ToastType } from "@/components/Toast";
 
 interface ChangePasswordPageProps {
   onNavigate: (page: string, data?: any) => void;
@@ -29,6 +29,11 @@ export default function ChangePasswordPage({
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  // Toast state
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState<ToastType>("error");
+
   const passwordRequirements = [
     { text: "Ít nhất 8 ký tự", met: newPassword.length >= 8 },
     { text: "Chứa chữ hoa", met: /[A-Z]/.test(newPassword) },
@@ -41,27 +46,37 @@ export default function ChangePasswordPage({
   const handleChangePassword = async () => {
     // Validation
     if (!currentPassword.trim()) {
-      Alert.alert("Lỗi", "Vui lòng nhập mật khẩu hiện tại");
+      setToastMessage("Vui lòng nhập mật khẩu hiện tại");
+      setToastType("error");
+      setShowToast(true);
       return;
     }
 
     if (!newPassword.trim()) {
-      Alert.alert("Lỗi", "Vui lòng nhập mật khẩu mới");
+      setToastMessage("Vui lòng nhập mật khẩu mới");
+      setToastType("error");
+      setShowToast(true);
       return;
     }
 
     if (!isPasswordValid) {
-      Alert.alert("Lỗi", "Mật khẩu mới không đáp ứng các yêu cầu");
+      setToastMessage("Mật khẩu mới không đáp ứng các yêu cầu");
+      setToastType("error");
+      setShowToast(true);
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert("Lỗi", "Mật khẩu xác nhận không khớp");
+      setToastMessage("Mật khẩu xác nhận không khớp");
+      setToastType("error");
+      setShowToast(true);
       return;
     }
 
     if (currentPassword === newPassword) {
-      Alert.alert("Lỗi", "Mật khẩu mới phải khác mật khẩu hiện tại");
+      setToastMessage("Mật khẩu mới phải khác mật khẩu hiện tại");
+      setToastType("error");
+      setShowToast(true);
       return;
     }
 
@@ -84,7 +99,9 @@ export default function ChangePasswordPage({
       });
 
       if (signInError) {
-        Alert.alert("Lỗi", "Mật khẩu hiện tại không đúng");
+        setToastMessage("Mật khẩu hiện tại không đúng");
+        setToastType("error");
+        setShowToast(true);
         setLoading(false);
         return;
       }
@@ -99,6 +116,10 @@ export default function ChangePasswordPage({
       }
 
       setSuccess(true);
+      setToastMessage("Mật khẩu đã được thay đổi thành công! 🎉");
+      setToastType("success");
+      setShowToast(true);
+      
       setTimeout(() => {
         onNavigate("profile");
       }, 2000);
@@ -112,7 +133,9 @@ export default function ChangePasswordPage({
         message = "Mật khẩu phải có ít nhất 6 ký tự";
       }
 
-      Alert.alert("Lỗi", message);
+      setToastMessage(message);
+      setToastType("error");
+      setShowToast(true);
     } finally {
       setLoading(false);
     }
@@ -135,6 +158,13 @@ export default function ChangePasswordPage({
 
   return (
     <SafeAreaView style={styles.container}>
+      <Toast
+        visible={showToast}
+        message={toastMessage}
+        type={toastType}
+        duration={3000}
+        onHide={() => setShowToast(false)}
+      />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => onNavigate("profile")}>
