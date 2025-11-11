@@ -1,15 +1,15 @@
+import { supabase } from "@/lib/supabase/client";
+import { ChevronLeft, Clock, DollarSign } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
-  View,
+  ActivityIndicator,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  ScrollView,
-  ActivityIndicator,
-  StyleSheet,
-  SafeAreaView,
+  View,
 } from "react-native";
-import { ChevronLeft, Clock, DollarSign } from "lucide-react-native";
-import { supabase } from "@/lib/supabase/client";
 
 interface Order {
   id: string;
@@ -20,7 +20,7 @@ interface Order {
 }
 
 interface HistoryPageProps {
-  onNavigate: (page: string) => void;
+  onNavigate: (page: string, data?: any) => void;
 }
 
 export default function HistoryPage({ onNavigate }: HistoryPageProps) {
@@ -75,11 +75,13 @@ export default function HistoryPage({ onNavigate }: HistoryPageProps) {
       </View>
 
       {/* Danh sách đơn hàng */}
-      <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
         {orders.map((order) => (
           <View key={order.id} style={styles.orderCard}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.orderCode}>Mã đơn: {order.order_number}</Text>
+              <Text style={styles.orderCode}>
+                Mã đơn: #{order.id.slice(0, 8)}
+              </Text>
               <View style={styles.row}>
                 <Clock size={14} color="#6b7280" />
                 <Text style={styles.timeText}>
@@ -101,13 +103,47 @@ export default function HistoryPage({ onNavigate }: HistoryPageProps) {
                   {order.status}
                 </Text>
               </Text>
-            </View>
 
-            <View style={styles.totalBox}>
-              <DollarSign size={16} color="#f97316" />
-              <Text style={styles.totalText}>
-                {order.total.toLocaleString()}₫
-              </Text>
+              <View style={styles.row}>
+                <DollarSign size={14} color="#f97316" />
+                <Text style={styles.totalText}>
+                  {order.total.toLocaleString()}₫
+                </Text>
+              </View>
+
+              {/* Action Buttons */}
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={styles.detailButton}
+                  onPress={() =>
+                    onNavigate("order-detail", { orderId: order.id })
+                  }
+                >
+                  <Text style={styles.detailButtonText}>Chi tiết</Text>
+                </TouchableOpacity>
+
+                {(order.status === "Preparing" ||
+                  order.status === "On the way" ||
+                  order.status === "Confirmed") && (
+                  <TouchableOpacity
+                    style={styles.trackButton}
+                    onPress={() =>
+                      onNavigate("track-order", { orderId: order.id })
+                    }
+                  >
+                    <Text style={styles.trackButtonText}>Theo dõi</Text>
+                  </TouchableOpacity>
+                )}
+
+                {order.status === "Delivered" && (
+                  <TouchableOpacity
+                    style={styles.ratingButton}
+                    onPress={() => onNavigate("rating", { orderId: order.id })}
+                  >
+                    <Text style={styles.ratingButtonText}>Đánh giá</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           </View>
         ))}
@@ -148,15 +184,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
     shadowColor: "#000",
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
-  orderCode: { fontWeight: "600", color: "#111827" },
+  orderCode: { fontWeight: "600", color: "#111827", marginBottom: 4 },
   row: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
   timeText: { color: "#6b7280", fontSize: 12 },
   statusLabel: { color: "#374151", fontSize: 13, marginTop: 4 },
@@ -164,6 +197,50 @@ const styles = StyleSheet.create({
   statusDelivered: { color: "#16a34a" },
   statusPending: { color: "#eab308" },
   statusCancelled: { color: "#ef4444" },
-  totalBox: { flexDirection: "row", alignItems: "center", gap: 4 },
-  totalText: { color: "#f97316", fontWeight: "700", fontSize: 15 },
+  totalText: { color: "#f97316", fontWeight: "700", fontSize: 14 },
+
+  buttonRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 12,
+  },
+  detailButton: {
+    flex: 1,
+    backgroundColor: "#e0f2fe",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignItems: "center",
+  },
+  detailButtonText: {
+    color: "#0891b2",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  trackButton: {
+    flex: 1,
+    backgroundColor: "#06b6d4",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignItems: "center",
+  },
+  trackButtonText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  ratingButton: {
+    flex: 1,
+    backgroundColor: "#fef3c7",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignItems: "center",
+  },
+  ratingButtonText: {
+    color: "#d97706",
+    fontSize: 13,
+    fontWeight: "600",
+  },
 });

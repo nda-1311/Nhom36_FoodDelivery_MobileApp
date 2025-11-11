@@ -1,21 +1,28 @@
-import React, { useState } from "react";
+import { supabase } from "@/lib/supabase/client";
+import { Check, ChevronLeft, Star, Upload } from "lucide-react-native";
+import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  TextInput,
+  ActivityIndicator,
+  Alert,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
-  Image,
-  SafeAreaView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { ChevronLeft, Star, Upload, Check } from "lucide-react-native";
 
 interface RatingPageProps {
   onNavigate: (page: string, data?: any) => void;
+  data?: {
+    orderId: string;
+    restaurantId?: string;
+    driverId?: string;
+  };
 }
 
-export default function RatingPage({ onNavigate }: RatingPageProps) {
+export default function RatingPage({ onNavigate, data }: RatingPageProps) {
   const [foodRating, setFoodRating] = useState(0);
   const [driverRating, setDriverRating] = useState(0);
   const [deliveryRating, setDeliveryRating] = useState(0);
@@ -24,20 +31,80 @@ export default function RatingPage({ onNavigate }: RatingPageProps) {
   const [driverFeedback, setDriverFeedback] = useState("");
   const [photoUploaded, setPhotoUploaded] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [existingRating, setExistingRating] = useState<any>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [order, setOrder] = useState<any>(null);
+
+  useEffect(() => {
+    const init = async () => {
+      // Get user
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setUserId(user?.id || null);
+
+      if (!data?.orderId) {
+        Alert.alert("Lỗi", "Không tìm thấy thông tin đơn hàng");
+        setLoading(false);
+        return;
+      }
+
+      // Fetch order info
+      const { data: orderData, error: orderError } = await supabase
+        .from("orders")
+        .select(
+          `
+          *,
+          restaurant:restaurants(id, name),
+          delivery_assignment:delivery_assignments(
+            driver:drivers(id, name)
+          )
+        `
+        )
+        .eq("id", data.orderId)
+        .single();
+
+      if (orderError) {
+        console.error("Error fetching order:", orderError);
+      } else {
+        setOrder(orderData);
+      }
+
+      // Check if rating already exists
+      const { data: ratingData, error: ratingError } = await supabase
+        .from("reviews")
+        .select("*")
+        .eq("order_id", data.orderId)
+        .maybeSingle();
+
+      if (!ratingError && ratingData) {
+        setExistingRating(ratingData);
+        setFoodRating(ratingData.rating || 0);
+        setFoodFeedback(ratingData.comment || "");
+        setSelectedTags(ratingData.tags || []);
+      }
+
+      setLoading(false);
+    };
+
+    init();
+  }, [data?.orderId]);
 
   const foodTags = [
-    "Delicious",
-    "Fresh",
-    "Hot",
-    "Well-packaged",
-    "Portion size",
+    "Ngon",
+    "Tươi mới",
+    "Nóng hổi",
+    "Đóng gói tốt",
+    "Khẩu phần vừa đủ",
   ];
   const driverTags = [
-    "Friendly",
-    "Professional",
-    "Quick",
-    "Careful",
-    "Contactless",
+    "Thân thiện",
+    "Chuyên nghiệp",
+    "Nhanh chóng",
+    "Cẩn thận",
+    "Giao không tiếp xúc",
   ];
 
   const toggleTag = (tag: string) => {
@@ -46,12 +113,65 @@ export default function RatingPage({ onNavigate }: RatingPageProps) {
     );
   };
 
-  const handleSubmit = () => {
-    setSubmitted(true);
-    setTimeout(() => {
-      onNavigate("home");
-    }, 2000);
+  const handleSubmit = async () => {
+    if (foodRating === 0) {
+      Alert.alert("Thông báo", "Vui lòng đánh giá món ăn!");
+      return;
+    }
+
+    if (!data?.orderId) {
+      Alert.alert("Lỗi", "Không tìm thấy thông tin đơn hàng");
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const ratingData = {
+        order_id: data.orderId,
+        user_id: userId,
+        rating: foodRating,
+        comment: foodFeedback || null,
+        tags: selectedTags.length > 0 ? selectedTags : null,
+      };
+
+      if (existingRating) {
+        // Update existing rating
+        const { error } = await supabase
+          .from("reviews")
+          .update(ratingData)
+          .eq("id", existingRating.id);
+
+        if (error) throw error;
+      } else {
+        // Insert new rating
+        const { error } = await supabase.from("reviews").insert([ratingData]);
+
+        if (error) throw error;
+      }
+
+      setSubmitted(true);
+      setTimeout(() => {
+        onNavigate("history");
+      }, 2000);
+    } catch (error: any) {
+      console.error("Error saving rating:", error);
+      Alert.alert("Lỗi", "Không thể lưu đánh giá. Vui lòng thử lại!");
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#06b6d4" />
+        <Text style={{ color: "#6b7280", marginTop: 8 }}>
+          Đang tải thông tin...
+        </Text>
+      </SafeAreaView>
+    );
+  }
 
   if (submitted) {
     return (
@@ -59,9 +179,13 @@ export default function RatingPage({ onNavigate }: RatingPageProps) {
         <View style={styles.successCircle}>
           <Check size={40} color="#16a34a" />
         </View>
-        <Text style={styles.successTitle}>Thank You!</Text>
-        <Text style={styles.successText}>Your feedback helps us improve</Text>
-        <Text style={styles.redirectText}>Redirecting to home...</Text>
+        <Text style={styles.successTitle}>Cảm ơn bạn!</Text>
+        <Text style={styles.successText}>
+          {existingRating
+            ? "Đánh giá đã được cập nhật"
+            : "Đánh giá của bạn giúp chúng tôi cải thiện"}
+        </Text>
+        <Text style={styles.redirectText}>Đang chuyển về trang chủ...</Text>
       </SafeAreaView>
     );
   }
@@ -69,10 +193,12 @@ export default function RatingPage({ onNavigate }: RatingPageProps) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#f9fafb" }}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => onNavigate("home")}>
+        <TouchableOpacity onPress={() => onNavigate("history")}>
           <ChevronLeft size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Rate Your Order</Text>
+        <Text style={styles.headerTitle}>
+          {existingRating ? "Chỉnh sửa đánh giá" : "Đánh giá đơn hàng"}
+        </Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -81,8 +207,8 @@ export default function RatingPage({ onNavigate }: RatingPageProps) {
           <View style={styles.cardHeader}>
             <Text style={styles.emoji}>🍔</Text>
             <View>
-              <Text style={styles.cardTitle}>Rate Your Food</Text>
-              <Text style={styles.cardSubtitle}>How was the quality?</Text>
+              <Text style={styles.cardTitle}>Đánh giá món ăn</Text>
+              <Text style={styles.cardSubtitle}>Chất lượng như thế nào?</Text>
             </View>
           </View>
 
@@ -124,7 +250,7 @@ export default function RatingPage({ onNavigate }: RatingPageProps) {
           </View>
 
           <TextInput
-            placeholder="Tell us more about your food experience..."
+            placeholder="Chia sẻ trải nghiệm về món ăn..."
             value={foodFeedback}
             onChangeText={setFoodFeedback}
             multiline
@@ -133,73 +259,79 @@ export default function RatingPage({ onNavigate }: RatingPageProps) {
         </View>
 
         {/* DRIVER RATING */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>J</Text>
+        {order?.driver && (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {order.driver.name?.charAt(0) || "D"}
+                </Text>
+              </View>
+              <View>
+                <Text style={styles.cardTitle}>
+                  Đánh giá {order.driver.name || "tài xế"}
+                </Text>
+                <Text style={styles.cardSubtitle}>Dịch vụ giao hàng?</Text>
+              </View>
             </View>
-            <View>
-              <Text style={styles.cardTitle}>Rate John Cooper</Text>
-              <Text style={styles.cardSubtitle}>How was the delivery?</Text>
+
+            <View style={styles.starRow}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <TouchableOpacity
+                  key={star}
+                  onPress={() => setDriverRating(star)}
+                >
+                  <Star
+                    size={34}
+                    color={star <= driverRating ? "#facc15" : "#d1d5db"}
+                    fill={star <= driverRating ? "#facc15" : "none"}
+                  />
+                </TouchableOpacity>
+              ))}
             </View>
-          </View>
 
-          <View style={styles.starRow}>
-            {[1, 2, 3, 4, 5].map((star) => (
-              <TouchableOpacity
-                key={star}
-                onPress={() => setDriverRating(star)}
-              >
-                <Star
-                  size={34}
-                  color={star <= driverRating ? "#facc15" : "#d1d5db"}
-                  fill={star <= driverRating ? "#facc15" : "none"}
-                />
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <View style={styles.tagContainer}>
-            {driverTags.map((tag) => (
-              <TouchableOpacity
-                key={tag}
-                onPress={() => toggleTag(tag)}
-                style={[
-                  styles.tag,
-                  selectedTags.includes(tag) && styles.tagSelected,
-                ]}
-              >
-                {selectedTags.includes(tag) && (
-                  <Check size={14} color="#fff" style={{ marginRight: 4 }} />
-                )}
-                <Text
+            <View style={styles.tagContainer}>
+              {driverTags.map((tag) => (
+                <TouchableOpacity
+                  key={tag}
+                  onPress={() => toggleTag(tag)}
                   style={[
-                    styles.tagText,
-                    selectedTags.includes(tag) && styles.tagTextSelected,
+                    styles.tag,
+                    selectedTags.includes(tag) && styles.tagSelected,
                   ]}
                 >
-                  {tag}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+                  {selectedTags.includes(tag) && (
+                    <Check size={14} color="#fff" style={{ marginRight: 4 }} />
+                  )}
+                  <Text
+                    style={[
+                      styles.tagText,
+                      selectedTags.includes(tag) && styles.tagTextSelected,
+                    ]}
+                  >
+                    {tag}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
-          <TextInput
-            placeholder="Tell us more about your driver experience..."
-            value={driverFeedback}
-            onChangeText={setDriverFeedback}
-            multiline
-            style={styles.textarea}
-          />
-        </View>
+            <TextInput
+              placeholder="Chia sẻ trải nghiệm về tài xế..."
+              value={driverFeedback}
+              onChangeText={setDriverFeedback}
+              multiline
+              style={styles.textarea}
+            />
+          </View>
+        )}
 
         {/* DELIVERY RATING */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.emoji}>🚗</Text>
             <View>
-              <Text style={styles.cardTitle}>Rate Delivery Speed</Text>
-              <Text style={styles.cardSubtitle}>Was it on time?</Text>
+              <Text style={styles.cardTitle}>Tốc độ giao hàng</Text>
+              <Text style={styles.cardSubtitle}>Đúng giờ không?</Text>
             </View>
           </View>
 
@@ -222,7 +354,7 @@ export default function RatingPage({ onNavigate }: RatingPageProps) {
         {/* PHOTO UPLOAD */}
         <View style={styles.card}>
           <Text style={[styles.cardTitle, { marginBottom: 8 }]}>
-            Share a Photo (Optional)
+            Chia sẻ hình ảnh (Tùy chọn)
           </Text>
           <TouchableOpacity
             onPress={() => setPhotoUploaded(!photoUploaded)}
@@ -235,13 +367,13 @@ export default function RatingPage({ onNavigate }: RatingPageProps) {
               <>
                 <Check size={20} color="#16a34a" />
                 <Text style={{ color: "#16a34a", fontWeight: "600" }}>
-                  Photo added
+                  Đã thêm ảnh
                 </Text>
               </>
             ) : (
               <>
                 <Upload size={20} color="#6b7280" />
-                <Text style={{ color: "#6b7280" }}>Click to upload photo</Text>
+                <Text style={{ color: "#6b7280" }}>Nhấn để tải ảnh lên</Text>
               </>
             )}
           </TouchableOpacity>
@@ -250,17 +382,23 @@ export default function RatingPage({ onNavigate }: RatingPageProps) {
         {/* SUBMIT BUTTON */}
         <TouchableOpacity
           onPress={handleSubmit}
-          disabled={foodRating === 0 || driverRating === 0}
+          disabled={foodRating === 0 || saving}
           style={[
             styles.submitButton,
-            (foodRating === 0 || driverRating === 0) && styles.disabledButton,
+            (foodRating === 0 || saving) && styles.disabledButton,
           ]}
         >
-          <Text style={styles.submitText}>Submit Feedback</Text>
+          {saving ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.submitText}>
+              {existingRating ? "Cập nhật đánh giá" : "Gửi đánh giá"}
+            </Text>
+          )}
         </TouchableOpacity>
 
         <Text style={styles.footerText}>
-          Your feedback is valuable and helps us improve our service
+          Đánh giá của bạn rất quan trọng và giúp chúng tôi cải thiện dịch vụ
         </Text>
       </ScrollView>
     </SafeAreaView>

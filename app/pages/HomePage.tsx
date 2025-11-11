@@ -217,7 +217,10 @@ export default function HomePage({
   );
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: 100 }}
+    >
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>🏠 Home</Text>

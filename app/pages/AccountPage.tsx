@@ -7,8 +7,9 @@ import {
   MapPin,
   Phone,
   Star,
+  User,
 } from "lucide-react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -21,22 +22,112 @@ import {
 
 interface AccountPageProps {
   onNavigate: (page: string, data?: any) => void;
+  data?: { refresh?: boolean };
 }
 
-export default function AccountPage({ onNavigate }: AccountPageProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(false);
+interface UserInfo {
+  name: string;
+  phone: string;
+  email: string;
+  address: string;
+  rating: number;
+  totalOrders: number;
+  memberSince: string;
+  avatar: string;
+}
 
-  const userInfo = {
-    name: "John Doe",
-    phone: "+1 (555) 123-4567",
-    email: "john.doe@example.com",
-    address: "201 Katlian No.21 Street, San Francisco, CA",
-    rating: 4.8,
-    totalOrders: 42,
-    memberSince: "January 2023",
-    avatar: "JD",
-  };
+export default function AccountPage({ onNavigate, data }: AccountPageProps) {
+  const [loading, setLoading] = useState(false);
+  const [userLoading, setUserLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0); // Add refresh trigger
+  const [userInfo, setUserInfo] = useState<UserInfo>({
+    name: "User",
+    phone: "",
+    email: "",
+    address: "",
+    rating: 0,
+    totalOrders: 0,
+    memberSince: "",
+    avatar: "U",
+  });
+
+  // Fetch user data from Supabase
+  useEffect(() => {
+    const fetchUserData = async () => {
+      setUserLoading(true);
+      try {
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+          console.error("Error getting user:", authError);
+          setUserLoading(false);
+          return;
+        }
+
+        // Fetch user profile from users table
+        const { data: userData } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        // Fetch total orders count
+        const { count: ordersCount } = await supabase
+          .from("orders")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id);
+
+        const userName = userData?.name || user.user_metadata?.name || "User";
+        const userEmail = user.email || "";
+        const userPhone = userData?.phone || user.user_metadata?.phone || "";
+        const userAddress = userData?.address || "";
+        const userRating = userData?.rating || 0;
+        const totalOrders = ordersCount || 0;
+
+        // Format member since date
+        const createdDate = new Date(userData?.created_at || user.created_at);
+        const memberSince = createdDate.toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric",
+        });
+
+        // Get initials for avatar
+        const initials = userName
+          .split(" ")
+          .map((n: string) => n[0])
+          .join("")
+          .toUpperCase()
+          .slice(0, 2);
+
+        setUserInfo({
+          name: userName,
+          phone: userPhone,
+          email: userEmail,
+          address: userAddress,
+          rating: userRating,
+          totalOrders: totalOrders,
+          memberSince: memberSince,
+          avatar: initials,
+        });
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      } finally {
+        setUserLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [refreshKey]); // Re-run when refreshKey changes
+
+  // Trigger refresh when coming back from ProfilePage
+  useEffect(() => {
+    if (data?.refresh) {
+      setRefreshKey((prev) => prev + 1);
+    }
+  }, [data?.refresh]);
 
   // ✅ Đăng xuất khỏi Supabase
   const handleLogout = async () => {
@@ -58,6 +149,15 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
       setLoading(false);
     }
   };
+
+  if (userLoading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#06b6d4" />
+        <Text style={styles.loadingText}>Đang tải thông tin...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>
@@ -90,7 +190,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
             Member since {userInfo.memberSince}
           </Text>
         </View>
-        <TouchableOpacity onPress={() => setIsEditing(!isEditing)}>
+        <TouchableOpacity onPress={() => onNavigate("profile")}>
           <Edit2 size={20} color="#06b6d4" />
         </TouchableOpacity>
       </View>
@@ -100,7 +200,9 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
         <Text style={styles.sectionTitle}>Account Information</Text>
 
         <View style={styles.infoItem}>
-          <Text style={styles.infoIcon}>👤</Text>
+          <View style={styles.iconWrapper}>
+            <User size={18} color="#06b6d4" />
+          </View>
           <View style={styles.infoText}>
             <Text style={styles.infoLabel}>Full Name</Text>
             <Text style={styles.infoValue}>{userInfo.name}</Text>
@@ -108,7 +210,9 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
         </View>
 
         <View style={styles.infoItem}>
-          <Phone size={18} color="#06b6d4" />
+          <View style={styles.iconWrapper}>
+            <Phone size={18} color="#06b6d4" />
+          </View>
           <View style={styles.infoText}>
             <Text style={styles.infoLabel}>Phone Number</Text>
             <Text style={styles.infoValue}>{userInfo.phone}</Text>
@@ -116,7 +220,9 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
         </View>
 
         <View style={styles.infoItem}>
-          <Mail size={18} color="#06b6d4" />
+          <View style={styles.iconWrapper}>
+            <Mail size={18} color="#06b6d4" />
+          </View>
           <View style={styles.infoText}>
             <Text style={styles.infoLabel}>Email Address</Text>
             <Text style={styles.infoValue}>{userInfo.email}</Text>
@@ -124,7 +230,9 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
         </View>
 
         <View style={styles.infoItem}>
-          <MapPin size={18} color="#06b6d4" />
+          <View style={styles.iconWrapper}>
+            <MapPin size={18} color="#06b6d4" />
+          </View>
           <View style={styles.infoText}>
             <Text style={styles.infoLabel}>Delivery Address</Text>
             <Text style={styles.infoValue}>{userInfo.address}</Text>
@@ -160,11 +268,11 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
         <Text style={styles.sectionTitle}>Settings</Text>
 
         {[
-          { label: "📜 View Order History", page: "history" },
-          { label: "🔔 Notifications" },
-          { label: "💳 Payment Methods" },
-          { label: "🔒 Privacy & Security" },
-          { label: "❓ Help & Support" },
+          { label: "📜 Lịch sử đơn hàng", page: "history", icon: "history" },
+          { label: "🔔 Thông báo", icon: "notification" },
+          { label: "💳 Phương thức thanh toán", icon: "payment" },
+          { label: "🔒 Quyền riêng tư", icon: "privacy" },
+          { label: "❓ Trợ giúp", icon: "help" },
         ].map((item, i) => (
           <TouchableOpacity
             key={i}
@@ -189,19 +297,30 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
           ) : (
             <>
               <LogOut size={20} color="#fff" />
-              <Text style={styles.logoutText}>Logout</Text>
+              <Text style={styles.logoutText}>Đăng xuất</Text>
             </>
           )}
         </TouchableOpacity>
       </View>
 
-      <View style={{ height: 40 }} />
+      <View style={{ height: 100 }} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  infoIcon: {
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#6b7280",
+  },
+  iconWrapper: {
     width: 40,
     height: 40,
     borderRadius: 20,

@@ -169,7 +169,7 @@ export default function FoodDetailsPage({
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
         {/* Image + Header */}
         <View style={styles.imageWrapper}>
           <Image source={imageSource} style={styles.image} resizeMode="cover" />

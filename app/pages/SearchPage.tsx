@@ -201,7 +201,7 @@ export default function SearchPage({
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
         {/* Filters */}
         <View style={styles.filterRow}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>

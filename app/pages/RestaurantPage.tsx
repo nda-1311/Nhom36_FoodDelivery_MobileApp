@@ -1,21 +1,20 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-  FlatList,
-} from "react-native";
 import {
   ChevronLeft,
-  Star,
   Clock,
-  MapPin,
   Heart,
+  MapPin,
   Share2,
+  Star,
 } from "lucide-react-native";
+import React, { useState } from "react";
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 interface RestaurantPageProps {
   data: any;
@@ -138,7 +137,10 @@ export default function RestaurantPage({
       : menuItems.filter((item) => item.category === activeTab);
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: 100 }}
+    >
       {/* Header image */}
       <View style={styles.imageContainer}>
         <Image source={{ uri: imageSrc }} style={styles.image} />

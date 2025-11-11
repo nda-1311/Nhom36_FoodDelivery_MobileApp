@@ -72,7 +72,10 @@ export default function InboxPage({ onNavigate }: InboxPageProps) {
       </View>
 
       {/* Messages List */}
-      <ScrollView style={styles.scroll}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
         {messages.map((msg) => (
           <TouchableOpacity
             key={msg.id}

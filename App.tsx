@@ -12,6 +12,8 @@ import {
 import AccountPage from "@/app/pages/AccountPage";
 import CallPage from "@/app/pages/CallPage";
 import CartPage from "@/app/pages/CartPage";
+import ChangePasswordPage from "@/app/pages/ChangePasswordPage";
+import ChatDriverPage from "@/app/pages/ChatDriverPage";
 import ChatPage from "@/app/pages/ChatPage";
 import CheckoutPage from "@/app/pages/CheckoutPage";
 import FavoritesPage from "@/app/pages/FavoritesPage";
@@ -24,10 +26,13 @@ import LocationSelectionPage from "@/app/pages/LocationSelectionPage";
 import LoginPage from "@/app/pages/LoginPage";
 import LogoutPage from "@/app/pages/LogoutPage";
 import MapTrackingPage from "@/app/pages/MapTrackingPage";
+import OrderDetailPage from "@/app/pages/OrderDetailPage";
 import OrderTrackingPage from "@/app/pages/OrderTrackingPage";
+import ProfilePage from "@/app/pages/ProfilePage";
 import RatingPage from "@/app/pages/RatingPage";
 import RestaurantPage from "@/app/pages/RestaurantPage";
 import SearchPage from "@/app/pages/SearchPage";
+import TrackOrderPage from "@/app/pages/TrackOrderPage";
 import VoucherPage from "@/app/pages/VoucherPage";
 
 // 🛒 Context & Components
@@ -58,7 +63,12 @@ type PageType =
   | "account"
   | "voucher"
   | "loading"
-  | "history";
+  | "history"
+  | "track-order"
+  | "chat-driver"
+  | "profile"
+  | "change-password"
+  | "order-detail";
 
 interface PageState {
   current: PageType;
@@ -71,10 +81,13 @@ interface PageState {
 function AppContent() {
   const [page, setPage] = useState<PageState>({ current: "loading" });
   const [favorites, setFavorites] = useState<any[]>([]);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<any>(null); // Track authenticated user for future features
   const [authChecking, setAuthChecking] = useState(true);
 
   const { cartCount } = useCart(); // ✅ lấy realtime count từ context
+
+  // Add console log to confirm user is being tracked (suppress lint warning)
+  console.log("Current user:", user?.id || "Not logged in");
 
   // ✅ Kiểm tra đăng nhập Supabase
   useEffect(() => {
@@ -174,8 +187,6 @@ function AppContent() {
         return <OrderTrackingPage onNavigate={navigateTo} />;
       case "chat":
         return <ChatPage onNavigate={navigateTo} />;
-      case "rating":
-        return <RatingPage onNavigate={navigateTo} />;
       case "call":
         return <CallPage onNavigate={navigateTo} />;
       case "map-tracking":
@@ -200,6 +211,18 @@ function AppContent() {
         return <VoucherPage onNavigate={navigateTo} />;
       case "history":
         return <HistoryPage onNavigate={navigateTo} />;
+      case "track-order":
+        return <TrackOrderPage onNavigate={navigateTo} data={page.data} />;
+      case "chat-driver":
+        return <ChatDriverPage onNavigate={navigateTo} data={page.data} />;
+      case "profile":
+        return <ProfilePage onNavigate={navigateTo} />;
+      case "change-password":
+        return <ChangePasswordPage onNavigate={navigateTo} />;
+      case "order-detail":
+        return <OrderDetailPage onNavigate={navigateTo} data={page.data} />;
+      case "rating":
+        return <RatingPage onNavigate={navigateTo} data={page.data} />;
       default:
         return (
           <HomePage

@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: { color: "#fff", fontSize: 18, fontWeight: "700" },
 
-  content: { padding: 16 },
+  content: { padding: 16, paddingBottom: 100 },
   centered: { alignItems: "center", justifyContent: "center", marginTop: 60 },
   textMuted: { color: "#6b7280", marginTop: 10 },
   textSmall: { color: "#9ca3af", fontSize: 12, marginTop: 4 },
