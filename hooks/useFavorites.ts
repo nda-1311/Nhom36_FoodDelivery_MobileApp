@@ -32,19 +32,29 @@ export function useFavorites(userId?: string) {
         // lấy session hiện tại
         const { data: sessionData } = await supabase.auth.getSession();
         const existingUser = sessionData.session?.user;
+        
+        console.log("🔐 [useFavorites] Current session:", {
+          hasSession: !!sessionData.session,
+          userId: existingUser?.id,
+          email: existingUser?.email,
+          isAnonymous: existingUser?.is_anonymous,
+        });
+
         if (existingUser?.id) {
           if (mounted) setInternalUserId(existingUser.id);
         } else {
           // chưa có -> đăng nhập ẩn danh
+          console.log("⚠️ [useFavorites] No session, signing in anonymously...");
           const { data, error } = await supabase.auth.signInAnonymously();
           if (error) {
-            console.error("Anonymous sign-in failed:", error);
+            console.error("❌ [useFavorites] Anonymous sign-in failed:", error);
             return;
           }
+          console.log("✅ [useFavorites] Anonymous sign-in success:", data.user?.id);
           if (mounted && data.user) setInternalUserId(data.user.id);
         }
       } catch (e) {
-        console.error(e);
+        console.error("❌ [useFavorites] Session error:", e);
       }
     })();
 
@@ -114,7 +124,17 @@ export function useFavorites(userId?: string) {
       foodId: string,
       meta?: { name?: string; image?: string; price?: number }
     ) => {
-      if (!effectiveUserId) return;
+      if (!effectiveUserId) {
+        console.error("❌ [useFavorites] No userId available for add");
+        return;
+      }
+      
+      console.log("✅ [useFavorites] Adding favorite:", {
+        userId: effectiveUserId,
+        foodId,
+        meta,
+      });
+
       const payload: Record<string, any> = {
         user_id: effectiveUserId,
         food_item_id: String(foodId),
@@ -123,8 +143,14 @@ export function useFavorites(userId?: string) {
       if (meta?.image) payload.food_image = meta.image;
       if (meta?.price != null) payload.price = meta.price;
 
-      const { error } = await supabase.from("favorites").insert(payload);
-      if (error) throw error;
+      const { data, error } = await supabase.from("favorites").insert(payload).select();
+      
+      if (error) {
+        console.error("❌ [useFavorites] Insert error:", error);
+        throw error;
+      }
+      
+      console.log("✅ [useFavorites] Insert success:", data);
 
       // Optimistic update (realtime cũng sẽ refresh)
       setItems((prev) =>
@@ -146,13 +172,28 @@ export function useFavorites(userId?: string) {
 
   const remove = useCallback(
     async (foodId: string) => {
-      if (!effectiveUserId) return;
+      if (!effectiveUserId) {
+        console.error("❌ [useFavorites] No userId available for remove");
+        return;
+      }
+      
+      console.log("✅ [useFavorites] Removing favorite:", {
+        userId: effectiveUserId,
+        foodId,
+      });
+
       const { error } = await supabase
         .from("favorites")
         .delete()
         .eq("user_id", effectiveUserId)
         .eq("food_item_id", String(foodId));
-      if (error) throw error;
+      
+      if (error) {
+        console.error("❌ [useFavorites] Delete error:", error);
+        throw error;
+      }
+      
+      console.log("✅ [useFavorites] Delete success");
 
       // Optimistic update (realtime cũng sẽ refresh)
       setItems((prev) =>

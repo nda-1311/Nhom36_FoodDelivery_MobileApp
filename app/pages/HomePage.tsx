@@ -7,6 +7,7 @@ import {
   SPACING,
   TYPOGRAPHY,
 } from "@/constants/design";
+import { useFavorites } from "@/hooks/useFavorites";
 import { supabase } from "@/lib/supabase/client";
 import { useCart } from "@/store/cart-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -62,8 +63,8 @@ const PRODUCTS_LIMIT = 6;
 
 export default function HomePage({
   onNavigate = () => {},
-  favorites = [],
-  onToggleFavorite = () => {},
+  favorites: externalFavorites = [],
+  onToggleFavorite,
 }: HomePageProps) {
   const [deals, setDeals] = useState<FoodItem[]>([]);
   const [foods, setFoods] = useState<FoodItem[]>([]);
@@ -73,6 +74,30 @@ export default function HomePage({
   const [refreshing, setRefreshing] = useState(false);
 
   const { cartCount } = useCart();
+  const { items: dbFavorites, toggle, isFav } = useFavorites();
+
+  // Combine external favorites with database favorites
+  const allFavorites = useMemo(() => {
+    const favIds = new Set([
+      ...externalFavorites.map((f) => String(f.id)),
+      ...dbFavorites.map((f) => String(f.food_item_id)),
+    ]);
+    return favIds;
+  }, [externalFavorites, dbFavorites]);
+
+  // Handle toggle favorite
+  const handleToggleFavorite = async (item: any) => {
+    if (onToggleFavorite) {
+      onToggleFavorite(item);
+    } else {
+      // Use hook to save to database
+      await toggle(String(item.id), {
+        name: item.name,
+        image: item.image_url,
+        price: item.price,
+      });
+    }
+  };
 
   // ✅ Fetch categories & data
   useEffect(() => {
@@ -265,9 +290,9 @@ export default function HomePage({
                   }
                   price={item.price ?? 0}
                   rating={item.rating ?? 0}
-                  isFavorite={favorites.some((f) => f.id === item.id)}
+                  isFavorite={allFavorites.has(String(item.id))}
                   onPress={() => onNavigate("food-details", item)}
-                  onFavoritePress={() => onToggleFavorite(item)}
+                  onFavoritePress={() => handleToggleFavorite(item)}
                 />
               ))
             )}
@@ -318,9 +343,9 @@ export default function HomePage({
                 }
                 price={item.price ?? 0}
                 rating={item.rating ?? 0}
-                isFavorite={favorites.some((f) => f.id === item.id)}
+                isFavorite={allFavorites.has(String(item.id))}
                 onPress={() => onNavigate("food-details", item)}
-                onFavoritePress={() => onToggleFavorite(item)}
+                onFavoritePress={() => handleToggleFavorite(item)}
               />
             ))
           )}

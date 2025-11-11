@@ -1,7 +1,7 @@
 import { COLORS } from "@/constants/design";
-import { supabase } from "@/lib/supabase/client";
+import { useFavorites } from "@/hooks/useFavorites";
 import { ChevronLeft, Heart } from "lucide-react-native";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -28,79 +28,44 @@ const IMAGE_MAP: Record<string, any> = {
 
 interface FavoritesPageProps {
   onNavigate: (page: string, data?: any) => void;
-  favorites: any[];
-  onToggleFavorite: (item: any) => void;
+  favorites?: any[];
+  onToggleFavorite?: (item: any) => void;
 }
-
-type FavRow = {
-  food_item_id: string;
-  food_name?: string;
-  food_image?: string;
-  price?: number;
-  created_at?: string;
-};
 
 export default function FavoritesPage({
   onNavigate,
-  favorites,
+  favorites: externalFavorites,
   onToggleFavorite,
 }: FavoritesPageProps) {
-  const [userId, setUserId] = useState<string | null>(null);
-  const [dbFavs, setDbFavs] = useState<FavRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Sử dụng hook useFavorites để lấy dữ liệu từ database
+  const { items: dbFavs, loading, toggle } = useFavorites();
 
-  useEffect(() => {
-    let unmounted = false;
-
-    (async () => {
-      const { data } = await supabase.auth.getUser();
-      if (!unmounted) setUserId(data.user?.id ?? null);
-    })();
-
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!unmounted) setUserId(session?.user?.id ?? null);
-    });
-
-    return () => {
-      unmounted = true;
-      sub.subscription.unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    const fetchFavs = async () => {
-      if (!userId) {
-        setDbFavs([]);
-        setLoading(false);
-        return;
-      }
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("favorites")
-        .select("food_item_id, food_name, food_image, price, created_at")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("[favorites select]", error);
-        setDbFavs([]);
-      } else {
-        setDbFavs(data || []);
-      }
-      setLoading(false);
-    };
-
-    fetchFavs();
-  }, [userId]);
-
+  // Ưu tiên dùng favorites từ props, nếu không có thì dùng từ database
   const list = useMemo(() => {
-    if (favorites && favorites.length > 0) return favorites;
+    if (externalFavorites && externalFavorites.length > 0) {
+      return externalFavorites;
+    }
     return dbFavs.map((r) => ({
       id: r.food_item_id,
       name: r.food_name,
       image: r.food_image,
       price: r.price,
     }));
-  }, [favorites, dbFavs]);
+  }, [externalFavorites, dbFavs]);
+
+  // Hàm xử lý toggle favorite
+  const handleToggleFavorite = async (item: any) => {
+    if (onToggleFavorite) {
+      onToggleFavorite(item);
+    } else {
+      // Dùng hook để toggle
+      await toggle(item.id, {
+        name: item.name,
+        image: item.image,
+        price: item.price,
+      });
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -136,18 +101,30 @@ export default function FavoritesPage({
             </TouchableOpacity>
           </View>
         ) : (
-          list.map((item) => (
+          list.map((item) => {
+            // Normalize image path - thử cả với và không có dấu /
+            let imageSource = require("@/assets/public/placeholder.jpg");
+            if (item.image) {
+              const pathWithSlash = item.image.startsWith("/") ? item.image : `/${item.image}`;
+              const pathWithoutSlash = item.image.startsWith("/") ? item.image.slice(1) : item.image;
+              
+              if (IMAGE_MAP[item.image]) {
+                imageSource = IMAGE_MAP[item.image];
+              } else if (IMAGE_MAP[pathWithSlash]) {
+                imageSource = IMAGE_MAP[pathWithSlash];
+              } else if (IMAGE_MAP[pathWithoutSlash]) {
+                imageSource = IMAGE_MAP[pathWithoutSlash];
+              }
+            }
+
+            return (
             <View key={item.id} style={styles.card}>
               <Image
-                source={
-                  item.image && IMAGE_MAP[item.image]
-                    ? IMAGE_MAP[item.image]
-                    : require("@/assets/public/placeholder.jpg")
-                }
+                source={imageSource}
                 style={styles.image}
                 onError={(e) => {
                   console.log(
-                    `Failed to load image for favorite item: ${item.name}`,
+                    `Failed to load image for favorite item: ${item.name}, path: ${item.image}`,
                     e.nativeEvent.error
                   );
                 }}
@@ -165,7 +142,7 @@ export default function FavoritesPage({
                     <Text style={styles.viewButtonText}>Xem chi tiết</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    onPress={() => onToggleFavorite(item)}
+                    onPress={() => handleToggleFavorite(item)}
                     style={styles.heartButton}
                   >
                     <Heart size={18} color="#ef4444" fill="#ef4444" />
@@ -173,7 +150,8 @@ export default function FavoritesPage({
                 </View>
               </View>
             </View>
-          ))
+            );
+          })
         )}
       </ScrollView>
     </SafeAreaView>
