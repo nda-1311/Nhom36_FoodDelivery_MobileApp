@@ -10,9 +10,9 @@ import {
   Gift,
   HelpCircle,
   History,
-  Lock,
   LogOut,
   Mail,
+  MapPin,
   Phone,
   ShoppingBag,
   Star,
@@ -297,42 +297,72 @@ export default function AccountPage({ onNavigate, data }: AccountPageProps) {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Cài đặt</Text>
 
-        {[
-          {
-            label: "Lịch sử đơn hàng",
-            page: "history",
-            icon: History,
-            color: COLORS.primary,
-          },
-          { label: "Thông báo", icon: Bell, color: COLORS.secondary },
-          {
-            label: "Phương thức thanh toán",
-            icon: CreditCard,
-            color: COLORS.accent,
-          },
-          { label: "Quyền riêng tư", icon: Lock, color: "#8b5cf6" },
-          { label: "Trợ giúp", icon: HelpCircle, color: "#06b6d4" },
-        ].map((item, i) => {
-          const IconComponent = item.icon;
-          return (
-            <TouchableOpacity
-              key={i}
-              style={styles.menuCard}
-              onPress={() => item.page && onNavigate(item.page)}
-            >
-              <View
-                style={[
-                  styles.menuIcon,
-                  { backgroundColor: `${item.color}15` },
-                ]}
-              >
-                <IconComponent size={22} color={item.color} />
-              </View>
-              <Text style={styles.menuLabel}>{item.label}</Text>
-              <ChevronRight size={20} color={COLORS.textSecondary} />
-            </TouchableOpacity>
-          );
-        })}
+        <TouchableOpacity
+          style={styles.menuCard}
+          onPress={() => onNavigate("history")}
+        >
+          <View
+            style={[
+              styles.menuIcon,
+              { backgroundColor: `${COLORS.primary}15` },
+            ]}
+          >
+            <History size={22} color={COLORS.primary} />
+          </View>
+          <Text style={styles.menuLabel}>Lịch sử đơn hàng</Text>
+          <ChevronRight size={20} color={COLORS.textSecondary} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuCard}
+          onPress={() => onNavigate("notifications")}
+        >
+          <View
+            style={[
+              styles.menuIcon,
+              { backgroundColor: `${COLORS.secondary}15` },
+            ]}
+          >
+            <Bell size={22} color={COLORS.secondary} />
+          </View>
+          <Text style={styles.menuLabel}>Thông báo</Text>
+          <ChevronRight size={20} color={COLORS.textSecondary} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuCard}
+          onPress={() => onNavigate("payment-method")}
+        >
+          <View
+            style={[styles.menuIcon, { backgroundColor: `${COLORS.accent}15` }]}
+          >
+            <CreditCard size={22} color={COLORS.accent} />
+          </View>
+          <Text style={styles.menuLabel}>Phương thức thanh toán</Text>
+          <ChevronRight size={20} color={COLORS.textSecondary} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuCard}
+          onPress={() => onNavigate("address-management")}
+        >
+          <View style={[styles.menuIcon, { backgroundColor: "#8b5cf615" }]}>
+            <MapPin size={22} color="#8b5cf6" />
+          </View>
+          <Text style={styles.menuLabel}>Địa chỉ giao hàng</Text>
+          <ChevronRight size={20} color={COLORS.textSecondary} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuCard}
+          onPress={() => onNavigate("support")}
+        >
+          <View style={[styles.menuIcon, { backgroundColor: "#06b6d415" }]}>
+            <HelpCircle size={22} color="#06b6d4" />
+          </View>
+          <Text style={styles.menuLabel}>Trợ giúp</Text>
+          <ChevronRight size={20} color={COLORS.textSecondary} />
+        </TouchableOpacity>
       </View>
 
       {/* Logout Button */}

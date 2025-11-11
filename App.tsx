@@ -10,6 +10,7 @@ import {
 
 // 🧩 Import các trang React Native
 import AccountPage from "@/app/pages/AccountPage";
+import AddressManagementPage from "@/app/pages/AddressManagementPage";
 import CallPage from "@/app/pages/CallPage";
 import CartPage from "@/app/pages/CartPage";
 import ChangePasswordPage from "@/app/pages/ChangePasswordPage";
@@ -27,13 +28,16 @@ import LocationSelectionPage from "@/app/pages/LocationSelectionPage";
 import LoginPage from "@/app/pages/LoginPage";
 import LogoutPage from "@/app/pages/LogoutPage";
 import MapTrackingPage from "@/app/pages/MapTrackingPage";
+import NotificationsPage from "@/app/pages/NotificationsPage";
 import OrderDetailPage from "@/app/pages/OrderDetailPage";
 import OrderTrackingPage from "@/app/pages/OrderTrackingPage";
+import PaymentMethodPage from "@/app/pages/PaymentMethodPage";
 import ProfilePage from "@/app/pages/ProfilePage";
 import RatingPage from "@/app/pages/RatingPage";
 import RegisterPage from "@/app/pages/RegisterPage";
 import RestaurantPage from "@/app/pages/RestaurantPage";
 import SearchPage from "@/app/pages/SearchPage";
+import SupportPage from "@/app/pages/SupportPage";
 import TrackOrderPage from "@/app/pages/TrackOrderPage";
 import VoucherPage from "@/app/pages/VoucherPage";
 
@@ -72,7 +76,11 @@ type PageType =
   | "chat-driver"
   | "profile"
   | "change-password"
-  | "order-detail";
+  | "order-detail"
+  | "address-management"
+  | "payment-method"
+  | "notifications"
+  | "support";
 
 interface PageState {
   current: PageType;
@@ -239,6 +247,14 @@ function AppContent() {
         return <OrderDetailPage onNavigate={navigateTo} data={page.data} />;
       case "rating":
         return <RatingPage onNavigate={navigateTo} data={page.data} />;
+      case "address-management":
+        return <AddressManagementPage onNavigate={navigateTo} />;
+      case "payment-method":
+        return <PaymentMethodPage onNavigate={navigateTo} />;
+      case "notifications":
+        return <NotificationsPage onNavigate={navigateTo} />;
+      case "support":
+        return <SupportPage onNavigate={navigateTo} />;
       default:
         return (
           <HomePage

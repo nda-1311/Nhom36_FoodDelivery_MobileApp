@@ -173,7 +173,10 @@ export default function HomePage({
             <Text style={styles.locationText}>Delivering to Home</Text>
             <ChevronDown size={16} color="#fff" />
           </View>
-          <TouchableOpacity style={styles.notificationBtn}>
+          <TouchableOpacity
+            style={styles.notificationBtn}
+            onPress={() => onNavigate?.("notifications")}
+          >
             <Bell size={22} color="#fff" />
             {cartCount > 0 && (
               <View style={styles.badge}>
