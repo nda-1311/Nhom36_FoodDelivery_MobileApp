@@ -1,5 +1,5 @@
-import { supabase } from "@/lib/supabase/client";
 import { COLORS } from "@/constants/design";
+import { supabase } from "@/lib/supabase/client";
 import { LinearGradient } from "expo-linear-gradient";
 import { ArrowLeft, Search, SlidersHorizontal, X } from "lucide-react-native";
 import React, { useEffect, useMemo, useState } from "react";

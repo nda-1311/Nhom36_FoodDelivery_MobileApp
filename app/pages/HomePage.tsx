@@ -228,7 +228,14 @@ export default function HomePage({
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>🔥 Đơn tốt hôm nay</Text>
-            <TouchableOpacity onPress={() => onNavigate("search", { filters: { sort: "rating_desc" }, title: "Món ăn đánh giá cao" })}>
+            <TouchableOpacity
+              onPress={() =>
+                onNavigate("search", {
+                  filters: { sort: "rating_desc" },
+                  title: "Món ăn đánh giá cao",
+                })
+              }
+            >
               <Text style={styles.seeAll}>Xem tất cả</Text>
             </TouchableOpacity>
           </View>
@@ -269,7 +276,19 @@ export default function HomePage({
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Khám phá món ngon</Text>
-          <TouchableOpacity onPress={() => onNavigate("search", { filters: { category: activeCategory !== "all" ? activeCategory : "" }, title: activeCategory !== "all" ? `Món ${activeCategory}` : "Tất cả món ăn" })}>
+          <TouchableOpacity
+            onPress={() =>
+              onNavigate("search", {
+                filters: {
+                  category: activeCategory !== "all" ? activeCategory : "",
+                },
+                title:
+                  activeCategory !== "all"
+                    ? `Món ${activeCategory}`
+                    : "Tất cả món ăn",
+              })
+            }
+          >
             <Text style={styles.seeAll}>Xem tất cả</Text>
           </TouchableOpacity>
         </View>
