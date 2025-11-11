@@ -64,7 +64,7 @@ export default function BottomNav({ currentPage, onNavigate }: BottomNavProps) {
           strokeWidth={isActive("home") ? 2.5 : 2}
         />
         <Text style={[styles.tabText, isActive("home") && styles.activeText]}>
-          Home
+          Trang chủ
         </Text>
       </TouchableOpacity>
 
@@ -93,7 +93,7 @@ export default function BottomNav({ currentPage, onNavigate }: BottomNavProps) {
           )}
         </View>
         <Text style={[styles.tabText, isActive("cart") && styles.activeText]}>
-          Cart
+          Giỏ hàng
         </Text>
       </TouchableOpacity>
 
@@ -110,7 +110,7 @@ export default function BottomNav({ currentPage, onNavigate }: BottomNavProps) {
         <Text
           style={[styles.tabText, isActive("favorites") && styles.activeText]}
         >
-          Favorites
+          Yêu thích
         </Text>
       </TouchableOpacity>
 
@@ -125,7 +125,7 @@ export default function BottomNav({ currentPage, onNavigate }: BottomNavProps) {
           strokeWidth={isActive("inbox") ? 2.5 : 2}
         />
         <Text style={[styles.tabText, isActive("inbox") && styles.activeText]}>
-          Inbox
+          Tin nhắn
         </Text>
       </TouchableOpacity>
 
@@ -142,7 +142,7 @@ export default function BottomNav({ currentPage, onNavigate }: BottomNavProps) {
         <Text
           style={[styles.tabText, isActive("account") && styles.activeText]}
         >
-          Account
+          Tài khoản
         </Text>
       </TouchableOpacity>
     </View>

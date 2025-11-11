@@ -75,18 +75,10 @@ export default function OrderDetailPage({
 
     const fetchOrderDetail = async () => {
       try {
-        // Fetch order info
+        // Fetch order info (without nested relations)
         const { data: orderData, error: orderError } = await supabase
           .from("orders")
-          .select(
-            `
-            *,
-            restaurant:restaurants(name, cuisine),
-            delivery_assignment:delivery_assignments(
-              driver:drivers(name, phone, vehicle_number)
-            )
-          `
-          )
+          .select("*")
           .eq("id", data.orderId)
           .single();
 
@@ -156,7 +148,7 @@ export default function OrderDetailPage({
   if (loading) {
     return (
       <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color="#06b6d4" />
+        <ActivityIndicator size="large" color="#FF5722" />
         <Text style={styles.textMuted}>Đang tải chi tiết đơn hàng...</Text>
       </SafeAreaView>
     );

@@ -69,7 +69,7 @@ export default function InboxPage({ onNavigate }: InboxPageProps) {
         <TouchableOpacity onPress={() => onNavigate("home")}>
           <ChevronLeft size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Inbox</Text>
+        <Text style={styles.headerTitle}>Tin nhắn</Text>
       </View>
 
       {/* Messages List */}

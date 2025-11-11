@@ -227,8 +227,10 @@ export default function HomePage({
       {deals.length > 0 && (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>🔥 Hot Deals Today</Text>
-            <Text style={styles.seeAll}>Xem tất cả</Text>
+            <Text style={styles.sectionTitle}>🔥 Đơn tốt hôm nay</Text>
+            <TouchableOpacity onPress={() => onNavigate("search", { filters: { sort: "rating_desc" }, title: "Món ăn đánh giá cao" })}>
+              <Text style={styles.seeAll}>Xem tất cả</Text>
+            </TouchableOpacity>
           </View>
           <ScrollView
             horizontal
@@ -267,7 +269,9 @@ export default function HomePage({
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Khám phá món ngon</Text>
-          <Text style={styles.seeAll}>Xem tất cả</Text>
+          <TouchableOpacity onPress={() => onNavigate("search", { filters: { category: activeCategory !== "all" ? activeCategory : "" }, title: activeCategory !== "all" ? `Món ${activeCategory}` : "Tất cả món ăn" })}>
+            <Text style={styles.seeAll}>Xem tất cả</Text>
+          </TouchableOpacity>
         </View>
         <View style={styles.foodGrid}>
           {loading ? (

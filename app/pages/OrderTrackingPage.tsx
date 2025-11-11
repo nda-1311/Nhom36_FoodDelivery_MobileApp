@@ -48,25 +48,25 @@ export default function OrderTrackingPage({
 
   const steps = [
     {
-      name: "Order\nConfirmed",
+      name: "Đơn hàng\nđã xác nhận",
       icon: Package,
       color: COLORS.primary,
       completed: progress > 0,
     },
     {
-      name: "Preparing\nFood",
+      name: "Đang\nchuẩn bị",
       icon: ChefHat,
       color: COLORS.accent,
       completed: progress > 25,
     },
     {
-      name: "On the\nWay",
+      name: "Đang\ngiao hàng",
       icon: Truck,
       color: COLORS.secondary,
       completed: progress > 50,
     },
     {
-      name: "Arriving\nSoon",
+      name: "Sắp\ntới nơi",
       icon: MapPin,
       color: "#8b5cf6",
       completed: progress > 75,
@@ -83,20 +83,20 @@ export default function OrderTrackingPage({
   };
 
   const getStatusMessage = () => {
-    if (progress < 25) return "Order confirmed! Preparing your food...";
-    if (progress < 50) return "Restaurant is preparing your food";
-    if (progress < 75) return "Driver is on the way to deliver";
-    if (progress < 100) return "Driver is arriving soon!";
-    return "Order delivered successfully!";
+    if (progress < 25) return "Đơn hàng đã xác nhận! Đang chuẩn bị món ăn...";
+    if (progress < 50) return "Nhà hàng đang chuẩn bị món ăn của bạn";
+    if (progress < 75) return "Tài xế đang trên đường giao hàng";
+    if (progress < 100) return "Tài xế sắp đến nơi!";
+    return "Đơn hàng đã được giao thành công!";
   };
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Gradient Header */}
       <LinearGradient
-        colors={[COLORS.primary, COLORS.secondary]}
+        colors={COLORS.gradientPrimary as any}
         start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        end={{ x: 1, y: 0 }}
         style={styles.header}
       >
         <TouchableOpacity
@@ -106,8 +106,8 @@ export default function OrderTrackingPage({
           <ArrowLeft size={22} color="#ffffff" />
         </TouchableOpacity>
         <View style={{ flex: 1, alignItems: "center" }}>
-          <Text style={styles.headerTitle}>Order Tracking</Text>
-          <Text style={styles.orderId}>Order #12345</Text>
+          <Text style={styles.headerTitle}>Theo dõi đơn hàng</Text>
+          <Text style={styles.orderId}>Đơn hàng #12345</Text>
         </View>
         <View style={{ width: 40 }} />
       </LinearGradient>
@@ -119,22 +119,22 @@ export default function OrderTrackingPage({
         {/* Status Card */}
         <View style={styles.statusCard}>
           <LinearGradient
-            colors={[COLORS.primary, COLORS.secondary]}
+            colors={COLORS.gradientPrimary as any}
             start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+            end={{ x: 1, y: 0 }}
             style={styles.statusIcon}
           >
             <CheckCircle size={40} color="#ffffff" strokeWidth={2.5} />
           </LinearGradient>
           <Text style={styles.statusTitle}>{getStatusMessage()}</Text>
           <Text style={styles.statusSubtitle}>
-            We&apos;ll notify you when status changes
+            Chúng tôi sẽ thông báo khi có thay đổi trạng thái
           </Text>
         </View>
 
         {/* Timeline Steps */}
         <View style={styles.timelineCard}>
-          <Text style={styles.sectionTitle}>Order Progress</Text>
+          <Text style={styles.sectionTitle}>Tiến trình đơn hàng</Text>
 
           {steps.map((step, idx) => {
             const Icon = step.icon;
@@ -177,7 +177,7 @@ export default function OrderTrackingPage({
                       {step.name.replace("\n", " ")}
                     </Text>
                     {isCompleted && idx === currentStep && (
-                      <Text style={styles.timelineTime}>Just now</Text>
+                      <Text style={styles.timelineTime}>Vừa xong</Text>
                     )}
                   </View>
                 </View>
@@ -189,12 +189,12 @@ export default function OrderTrackingPage({
         {/* Progress Bar */}
         <View style={styles.progressCard}>
           <View style={styles.progressHeader}>
-            <Text style={styles.progressLabel}>Overall Progress</Text>
+            <Text style={styles.progressLabel}>Tiến độ tổng thể</Text>
             <Text style={styles.progressPercent}>{Math.round(progress)}%</Text>
           </View>
           <View style={styles.progressBarContainer}>
             <LinearGradient
-              colors={[COLORS.primary, COLORS.secondary]}
+              colors={COLORS.gradientPrimary as any}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={[styles.progressBarFill, { width: `${progress}%` }]}
@@ -209,8 +209,10 @@ export default function OrderTrackingPage({
               <Clock size={20} color={COLORS.primary} strokeWidth={2.5} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.estimateTitle}>Estimated Delivery Time</Text>
-              <Text style={styles.estimateTime}>Arrives in 15-20 minutes</Text>
+              <Text style={styles.estimateTitle}>
+                Thời gian giao hàng dự kiến
+              </Text>
+              <Text style={styles.estimateTime}>Đến trong 15-20 phút</Text>
             </View>
           </View>
         )}
@@ -218,13 +220,13 @@ export default function OrderTrackingPage({
         {/* Driver Info */}
         {progress > 25 && (
           <View style={styles.driverCard}>
-            <Text style={styles.sectionTitle}>Your Driver</Text>
+            <Text style={styles.sectionTitle}>Tài xế của bạn</Text>
 
             <View style={styles.driverRow}>
               <LinearGradient
-                colors={[COLORS.primary, COLORS.secondary]}
+                colors={COLORS.gradientPrimary as any}
                 start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+                end={{ x: 1, y: 0 }}
                 style={styles.driverAvatar}
               >
                 <Text style={styles.avatarText}>{driver.avatar}</Text>
@@ -244,7 +246,7 @@ export default function OrderTrackingPage({
                 <View style={styles.callIconCircle}>
                   <Phone size={18} color={COLORS.primary} strokeWidth={2.5} />
                 </View>
-                <Text style={styles.callText}>Call Driver</Text>
+                <Text style={styles.callText}>Gọi tài xế</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -252,13 +254,13 @@ export default function OrderTrackingPage({
                 onPress={() => onNavigate("chat")}
               >
                 <LinearGradient
-                  colors={[COLORS.primary, COLORS.secondary]}
+                  colors={COLORS.gradientPrimary as any}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.chatGradient}
                 >
                   <MessageSquare size={18} color="#ffffff" strokeWidth={2.5} />
-                  <Text style={styles.chatText}>Chat</Text>
+                  <Text style={styles.chatText}>Nhắn tin</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
@@ -268,7 +270,7 @@ export default function OrderTrackingPage({
         {/* Help Button */}
         <TouchableOpacity style={styles.helpButton}>
           <HelpCircle size={20} color={COLORS.primary} strokeWidth={2.5} />
-          <Text style={styles.helpText}>Need Help?</Text>
+          <Text style={styles.helpText}>Cần trợ giúp?</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -311,7 +313,7 @@ const styles = StyleSheet.create({
 
   scrollContent: {
     padding: 16,
-    paddingBottom: 32,
+    paddingBottom: 120,
   },
 
   // Status Card

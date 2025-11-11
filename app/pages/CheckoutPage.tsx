@@ -77,8 +77,8 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
     fetchCart();
   }, [cartKey]);
 
-  const deliveryFee = 2.5;
-  const promotion = -3.2;
+  const deliveryFee = 15000; // 15.000đ
+  const promotion = -10000; // -10.000đ
   const subtotal = useMemo(
     () =>
       items.reduce(
@@ -88,7 +88,7 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
     [items]
   );
   const total = subtotal + deliveryFee + promotion;
-  const money = (v: number) => `$${v.toFixed(2)}`;
+  const money = (v: number) => `${v.toLocaleString("vi-VN")}đ`;
 
   // ==================== ĐẶT HÀNG ====================
   const handlePlaceOrder = async () => {
@@ -202,7 +202,7 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator color={COLORS.primary} size="large" />
-        <Text style={styles.loadingText}>Preparing checkout...</Text>
+        <Text style={styles.loadingText}>Đang chuẩn bị thanh toán...</Text>
       </View>
     );
   }
@@ -218,7 +218,7 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
           onPress={() => onNavigate("home")}
         >
           <LinearGradient
-            colors={[COLORS.primary, COLORS.secondary]}
+            colors={COLORS.gradientPrimary as any}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.emptyButtonGradient}
@@ -233,21 +233,21 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
   const paymentMethods = [
     {
       id: "ewallet",
-      name: "E-wallet",
+      name: "Ví điện tử",
       icon: Wallet,
       description: "Nhanh & tiện",
       color: COLORS.primary,
     },
     {
       id: "card",
-      name: "Credit Card",
+      name: "Thẻ tín dụng",
       icon: CreditCard,
       description: "Visa / Master",
       color: COLORS.secondary,
     },
     {
       id: "cash",
-      name: "Cash on Delivery",
+      name: "Tiền mặt",
       icon: Banknote,
       description: "Trả tiền mặt",
       color: COLORS.accent,
@@ -255,8 +255,8 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
   ];
 
   const addresses = [
-    { id: "home", label: "Home", address: "201 Katlian No.21 Street" },
-    { id: "work", label: "Work", address: "456 Business Ave, Suite 100" },
+    { id: "home", label: "Nhà riêng", address: "201 Katlian No.21 Street" },
+    { id: "work", label: "Công ty", address: "456 Business Ave, Suite 100" },
   ];
 
   return (
@@ -267,7 +267,7 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
       >
         {/* Header with Gradient */}
         <LinearGradient
-          colors={[COLORS.primary, COLORS.secondary]}
+          colors={COLORS.gradientPrimary as any}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.header}
@@ -279,8 +279,8 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
             <ChevronLeft size={24} color="#ffffff" />
           </TouchableOpacity>
           <View style={styles.headerTextContainer}>
-            <Text style={styles.headerTitle}>Order Review</Text>
-            <Text style={styles.headerSubtitle}>Confirm your details</Text>
+            <Text style={styles.headerTitle}>Xác nhận đơn hàng</Text>
+            <Text style={styles.headerSubtitle}>Kiểm tra thông tin</Text>
           </View>
         </LinearGradient>
 
@@ -290,7 +290,7 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
             <View style={styles.iconCircle}>
               <MapPin size={20} color={COLORS.primary} />
             </View>
-            <Text style={styles.sectionTitle}>Delivery Address</Text>
+            <Text style={styles.sectionTitle}>Địa chỉ giao hàng</Text>
           </View>
           {addresses.map((addr) => (
             <TouchableOpacity
@@ -320,7 +320,7 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
             <View style={styles.iconCircle}>
               <Wallet size={20} color={COLORS.primary} />
             </View>
-            <Text style={styles.sectionTitle}>Payment Method</Text>
+            <Text style={styles.sectionTitle}>Phương thức thanh toán</Text>
           </View>
           {paymentMethods.map((method) => {
             const IconComponent = method.icon;
@@ -357,23 +357,23 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
 
         {/* Order Summary */}
         <View style={styles.summarySection}>
-          <Text style={styles.summaryTitle}>Order Summary</Text>
+          <Text style={styles.summaryTitle}>Tóm tắt đơn hàng</Text>
           <View style={styles.summaryCard}>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Subtotal</Text>
+              <Text style={styles.summaryLabel}>Tạm tính</Text>
               <Text style={styles.summaryValue}>{money(subtotal)}</Text>
             </View>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Delivery fee</Text>
+              <Text style={styles.summaryLabel}>Phí giao hàng</Text>
               <Text style={styles.summaryValue}>{money(deliveryFee)}</Text>
             </View>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabelPromo}>Promotion</Text>
+              <Text style={styles.summaryLabelPromo}>Khuyến mãi</Text>
               <Text style={styles.summaryValuePromo}>{money(promotion)}</Text>
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryRowTotal}>
-              <Text style={styles.summaryLabelTotal}>Total</Text>
+              <Text style={styles.summaryLabelTotal}>Tổng cộng</Text>
               <Text style={styles.summaryValueTotal}>{money(total)}</Text>
             </View>
           </View>
@@ -386,12 +386,12 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
             onPress={handlePlaceOrder}
           >
             <LinearGradient
-              colors={[COLORS.primary, COLORS.secondary]}
+              colors={COLORS.gradientPrimary as any}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.placeOrderGradient}
             >
-              <Text style={styles.placeOrderText}>Place Order</Text>
+              <Text style={styles.placeOrderText}>Đặt hàng</Text>
               <Text style={styles.placeOrderPrice}>{money(total)}</Text>
             </LinearGradient>
           </TouchableOpacity>

@@ -95,6 +95,23 @@ export default function HistoryPage({ onNavigate }: HistoryPageProps) {
     }
   };
 
+  const getStatusText = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "delivered":
+        return "Đã giao";
+      case "pending":
+        return "Chờ xử lý";
+      case "cancelled":
+        return "Đã hủy";
+      case "preparing":
+        return "Đang chuẩn bị";
+      case "on the way":
+        return "Đang giao";
+      default:
+        return status;
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.centered}>
@@ -119,7 +136,7 @@ export default function HistoryPage({ onNavigate }: HistoryPageProps) {
           >
             <ChevronLeft size={22} color="#ffffff" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Order History</Text>
+          <Text style={styles.headerTitle}>Lịch sử đơn hàng</Text>
           <View style={{ width: 40 }} />
         </LinearGradient>
 
@@ -127,22 +144,22 @@ export default function HistoryPage({ onNavigate }: HistoryPageProps) {
           <View style={styles.emptyIconCircle}>
             <ShoppingBag size={48} color={COLORS.textLight} strokeWidth={1.5} />
           </View>
-          <Text style={styles.emptyTitle}>No Orders Yet</Text>
+          <Text style={styles.emptyTitle}>Chưa có đơn hàng</Text>
           <Text style={styles.emptySubtitle}>
-            Start ordering delicious food now!
+            Bắt đầu đặt món ăn ngon ngay bây giờ!
           </Text>
           <TouchableOpacity
             onPress={() => onNavigate("home")}
             style={styles.emptyButton}
           >
             <LinearGradient
-              colors={[COLORS.primary, COLORS.secondary]}
+              colors={COLORS.gradientPrimary as any}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.emptyButtonGradient}
             >
               <ShoppingBag size={20} color="#ffffff" strokeWidth={2.5} />
-              <Text style={styles.emptyButtonText}>Order Now</Text>
+              <Text style={styles.emptyButtonText}>Đặt món ngay</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -154,9 +171,9 @@ export default function HistoryPage({ onNavigate }: HistoryPageProps) {
     <SafeAreaView style={styles.container}>
       {/* Gradient Header */}
       <LinearGradient
-        colors={[COLORS.primary, COLORS.secondary]}
+        colors={COLORS.gradientPrimary as any}
         start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        end={{ x: 1, y: 0 }}
         style={styles.header}
       >
         <TouchableOpacity
@@ -165,7 +182,7 @@ export default function HistoryPage({ onNavigate }: HistoryPageProps) {
         >
           <ChevronLeft size={22} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Order History</Text>
+        <Text style={styles.headerTitle}>Lịch sử đơn hàng</Text>
         <View style={{ width: 40 }} />
       </LinearGradient>
 
@@ -233,7 +250,7 @@ export default function HistoryPage({ onNavigate }: HistoryPageProps) {
                   ]}
                 >
                   <Text style={[styles.statusText, { color: statusColor }]}>
-                    {order.status}
+                    {getStatusText(order.status)}
                   </Text>
                 </View>
               </View>
@@ -259,7 +276,7 @@ export default function HistoryPage({ onNavigate }: HistoryPageProps) {
                   }
                 >
                   <Package size={16} color={COLORS.primary} strokeWidth={2.5} />
-                  <Text style={styles.detailButtonText}>Details</Text>
+                  <Text style={styles.detailButtonText}>Chi tiết</Text>
                 </TouchableOpacity>
 
                 {(order.status === "Preparing" ||
@@ -272,13 +289,13 @@ export default function HistoryPage({ onNavigate }: HistoryPageProps) {
                     }
                   >
                     <LinearGradient
-                      colors={[COLORS.primary, COLORS.secondary]}
+                      colors={COLORS.gradientPrimary as any}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 0 }}
                       style={styles.trackGradient}
                     >
                       <Truck size={16} color="#ffffff" strokeWidth={2.5} />
-                      <Text style={styles.trackButtonText}>Track</Text>
+                      <Text style={styles.trackButtonText}>Theo dõi</Text>
                     </LinearGradient>
                   </TouchableOpacity>
                 )}
@@ -289,7 +306,7 @@ export default function HistoryPage({ onNavigate }: HistoryPageProps) {
                     onPress={() => onNavigate("rating", { orderId: order.id })}
                   >
                     <Star size={16} color={COLORS.accent} strokeWidth={2.5} />
-                    <Text style={styles.ratingButtonText}>Rate</Text>
+                    <Text style={styles.ratingButtonText}>Đánh giá</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -392,7 +409,7 @@ const styles = StyleSheet.create({
   // Scroll Content
   scrollContent: {
     padding: 16,
-    paddingBottom: 32,
+    paddingBottom: 120,
   },
 
   // Order Card

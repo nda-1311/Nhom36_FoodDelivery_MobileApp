@@ -109,7 +109,7 @@ export default function FavoritesPage({
         <TouchableOpacity onPress={() => onNavigate("home")}>
           <ChevronLeft size={26} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Favorites</Text>
+        <Text style={styles.headerTitle}>Yêu thích</Text>
       </View>
 
       {/* Content */}
@@ -117,20 +117,22 @@ export default function FavoritesPage({
         {loading ? (
           <View style={styles.centered}>
             <ActivityIndicator color={COLORS.primary} size="large" />
-            <Text style={styles.textMuted}>Loading favorites...</Text>
+            <Text style={styles.textMuted}>
+              Đang tải danh sách yêu thích...
+            </Text>
           </View>
         ) : list.length === 0 ? (
           <View style={styles.centered}>
             <Heart size={48} color={COLORS.textLight} />
-            <Text style={styles.textMuted}>No favorites yet</Text>
+            <Text style={styles.textMuted}>Chưa có món yêu thích</Text>
             <Text style={styles.textSmall}>
-              Add items to your favorites to see them here
+              Thêm món ăn vào yêu thích để xem ở đây
             </Text>
             <TouchableOpacity
               style={styles.primaryButton}
               onPress={() => onNavigate("home")}
             >
-              <Text style={styles.primaryButtonText}>Browse Food</Text>
+              <Text style={styles.primaryButtonText}>Khám phá món ăn</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -160,7 +162,7 @@ export default function FavoritesPage({
                     style={styles.viewButton}
                     onPress={() => onNavigate("food-details", item)}
                   >
-                    <Text style={styles.viewButtonText}>View Details</Text>
+                    <Text style={styles.viewButtonText}>Xem chi tiết</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => onToggleFavorite(item)}

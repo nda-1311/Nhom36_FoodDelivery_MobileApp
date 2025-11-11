@@ -1,4 +1,6 @@
 import { supabase } from "@/lib/supabase/client";
+import { COLORS } from "@/constants/design";
+import { LinearGradient } from "expo-linear-gradient";
 import { ArrowLeft, Search, SlidersHorizontal, X } from "lucide-react-native";
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -38,10 +40,10 @@ type FoodItem = {
 
 const PAGE_SIZE = 12;
 const SORT_OPTIONS = [
-  { id: "rating_desc", label: "Rating ↓" },
-  { id: "price_asc", label: "Price ↑" },
-  { id: "price_desc", label: "Price ↓" },
-  { id: "newest", label: "Newest" },
+  { id: "rating_desc", label: "Đánh giá ↓" },
+  { id: "price_asc", label: "Giá ↑" },
+  { id: "price_desc", label: "Giá ↓" },
+  { id: "newest", label: "Mới nhất" },
 ] as const;
 
 interface SearchPageProps {
@@ -172,7 +174,12 @@ export default function SearchPage({
   return (
     <View style={{ flex: 1, backgroundColor: "#fff" }}>
       {/* Header */}
-      <View style={styles.header}>
+      <LinearGradient
+        colors={COLORS.gradientPrimary as any}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.header}
+      >
         <View style={styles.headerTop}>
           <TouchableOpacity
             style={styles.backBtn}
@@ -180,14 +187,14 @@ export default function SearchPage({
           >
             <ArrowLeft size={18} color="#fff" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{title || "Search"}</Text>
+          <Text style={styles.headerTitle}>{title || "Tìm kiếm"}</Text>
         </View>
 
         {/* Search Box */}
         <View style={styles.searchBox}>
           <Search size={18} color="#6b7280" />
           <TextInput
-            placeholder="Search foods..."
+            placeholder="Tìm món ăn..."
             value={q}
             onChangeText={setQ}
             onSubmitEditing={() => fetchPage(0)}
@@ -195,18 +202,18 @@ export default function SearchPage({
           />
           {!!q && (
             <TouchableOpacity onPress={() => setQ("")}>
-              <Text style={{ color: "#06b6d4", fontSize: 12 }}>Clear</Text>
+              <Text style={{ color: COLORS.primary, fontSize: 12 }}>Xóa</Text>
             </TouchableOpacity>
           )}
         </View>
-      </View>
+      </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
         {/* Filters */}
         <View style={styles.filterRow}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <SlidersHorizontal size={16} color="#111" />
-            <Text style={{ fontSize: 13, fontWeight: "600" }}>Filters</Text>
+            <Text style={{ fontSize: 13, fontWeight: "600" }}>Bộ lọc</Text>
           </View>
           <View style={styles.sortBox}>
             {SORT_OPTIONS.map((s) => (
@@ -282,19 +289,19 @@ export default function SearchPage({
               <View key={chip.type} style={styles.activeChip}>
                 <Text style={styles.activeChipText}>{chip.label}</Text>
                 <TouchableOpacity onPress={() => clearChip(chip.type)}>
-                  <X size={12} color="#0e7490" />
+                  <X size={12} color={COLORS.primaryDark} />
                 </TouchableOpacity>
               </View>
             ))}
             <TouchableOpacity onPress={clearAll}>
-              <Text style={styles.resetBtn}>Reset</Text>
+              <Text style={styles.resetBtn}>Đặt lại</Text>
             </TouchableOpacity>
           </View>
         )}
 
         {/* Results */}
         {loading && page === 0 ? (
-          <ActivityIndicator color="#06b6d4" style={{ marginTop: 40 }} />
+          <ActivityIndicator color={COLORS.primary} style={{ marginTop: 40 }} />
         ) : (
           <FlatList
             data={foods}
@@ -348,11 +355,11 @@ export default function SearchPage({
             onPress={() => fetchPage(page + 1)}
             style={styles.loadMore}
           >
-            <Text style={{ color: "#111" }}>Load more</Text>
+            <Text style={{ color: "#111" }}>Tải thêm</Text>
           </TouchableOpacity>
         )}
         {loading && page > 0 && (
-          <ActivityIndicator color="#06b6d4" style={{ marginTop: 10 }} />
+          <ActivityIndicator color={COLORS.primary} style={{ marginTop: 10 }} />
         )}
         {error && <Text style={styles.error}>{error}</Text>}
       </ScrollView>
@@ -362,7 +369,6 @@ export default function SearchPage({
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: "#06b6d4",
     paddingHorizontal: 16,
     paddingVertical: 20,
   },
@@ -405,8 +411,8 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   sortChipActive: {
-    backgroundColor: "#06b6d4",
-    borderColor: "#06b6d4",
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
   },
   sortText: { fontSize: 12, color: "#374151" },
   sortTextActive: { color: "#fff" },
@@ -419,8 +425,8 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   chipActive: {
-    backgroundColor: "#06b6d4",
-    borderColor: "#06b6d4",
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
   },
   chipText: { fontSize: 12, color: "#374151" },
   chipTextActive: { color: "#fff" },
@@ -433,14 +439,14 @@ const styles = StyleSheet.create({
   activeChip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#cffafe",
+    backgroundColor: COLORS.primaryLight,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
     gap: 4,
   },
-  activeChipText: { fontSize: 11, color: "#0e7490" },
-  resetBtn: { color: "#ef4444", fontSize: 12, fontWeight: "600" },
+  activeChipText: { fontSize: 11, color: COLORS.primaryDark },
+  resetBtn: { color: COLORS.error, fontSize: 12, fontWeight: "600" },
   card: {
     flex: 1,
     borderWidth: 1,
@@ -475,5 +481,5 @@ const styles = StyleSheet.create({
     padding: 10,
     marginTop: 10,
   },
-  error: { color: "#dc2626", fontSize: 12, marginTop: 10 },
+  error: { color: COLORS.error, fontSize: 12, marginTop: 10 },
 });

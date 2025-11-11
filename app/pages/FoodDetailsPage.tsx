@@ -70,8 +70,9 @@ export default function FoodDetailsPage({
   const { isFav, toggle, loading: favLoading } = useFavorites();
   const isFavorite = data?.id ? isFav(String(data.id)) : false;
 
-  const displayName = data?.name || "Food Item";
-  const displayDesc = data?.description || "Delicious meal prepared fresh!";
+  const displayName = data?.name || "Món ăn";
+  const displayDesc =
+    data?.description || "Món ăn ngon được chuẩn bị tươi mới!";
   const basePrice = Number(data?.price) || 10;
 
   // Xử lý ảnh
@@ -184,7 +185,7 @@ export default function FoodDetailsPage({
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={{ paddingBottom: SPACING.bottomNav }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 200 }}>
         {/* Hero Image */}
         <View style={styles.heroContainer}>
           <Image
@@ -231,10 +232,10 @@ export default function FoodDetailsPage({
             <View style={styles.ratingContainer}>
               <Star size={18} color={COLORS.accent} fill={COLORS.accent} />
               <Text style={styles.ratingValue}>{data.rating || 4.5}</Text>
-              <Text style={styles.ratingCount}>(289 reviews)</Text>
+              <Text style={styles.ratingCount}>(289 đánh giá)</Text>
             </View>
             <View style={styles.priceContainer}>
-              <Text style={styles.priceLabel}>Base Price</Text>
+              <Text style={styles.priceLabel}>Giá gốc</Text>
               <Text style={styles.priceValue}>
                 {basePrice.toLocaleString("vi-VN")}đ
               </Text>
@@ -245,8 +246,8 @@ export default function FoodDetailsPage({
         {/* Size Selection */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>🥤 Size</Text>
-            <Text style={styles.requiredBadge}>Required</Text>
+            <Text style={styles.sectionTitle}>🥤 Kích cỡ</Text>
+            <Text style={styles.requiredBadge}>Bắt buộc</Text>
           </View>
           <View style={styles.optionsGrid}>
             {["S", "M", "L"].map((size) => (
@@ -290,8 +291,8 @@ export default function FoodDetailsPage({
         {/* Toppings */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>🧀 Toppings</Text>
-            <Text style={styles.optionalBadge}>Optional</Text>
+            <Text style={styles.sectionTitle}>🧀 Topping</Text>
+            <Text style={styles.optionalBadge}>Tùy chọn</Text>
           </View>
           {["Corn", "Cheese Cheddar", "Salted egg"].map((topping) => (
             <TouchableOpacity
@@ -314,11 +315,29 @@ export default function FoodDetailsPage({
                     <Text style={styles.checkmark}>✓</Text>
                   )}
                 </View>
-                <Text style={styles.toppingLabel}>{topping}</Text>
+                <Text
+                  style={[
+                    styles.toppingLabel,
+                    toppings.includes(topping) && styles.toppingLabelSelected,
+                  ]}
+                >
+                  {topping}
+                </Text>
               </View>
-              <Text style={styles.toppingPrice}>
-                +$
-                {topping === "Corn" ? 2 : topping === "Cheese Cheddar" ? 5 : 10}
+              <Text
+                style={[
+                  styles.toppingPrice,
+                  toppings.includes(topping) && styles.toppingPriceSelected,
+                ]}
+              >
+                +
+                {(topping === "Corn"
+                  ? 2000
+                  : topping === "Cheese Cheddar"
+                  ? 5000
+                  : 10000
+                ).toLocaleString("vi-VN")}
+                đ
               </Text>
             </TouchableOpacity>
           ))}
@@ -327,43 +346,48 @@ export default function FoodDetailsPage({
         {/* Spiciness */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>🌶️ Spiciness</Text>
-            <Text style={styles.requiredBadge}>Required</Text>
+            <Text style={styles.sectionTitle}>🌶️ Độ cay</Text>
+            <Text style={styles.requiredBadge}>Bắt buộc</Text>
           </View>
           <View style={styles.optionsGrid}>
-            {["No", "Hot", "Very hot"].map((level) => (
-              <TouchableOpacity
-                key={level}
-                onPress={() => setSelectedSpiciness(level)}
-                style={[
-                  styles.optionCard,
-                  selectedSpiciness === level && styles.optionCardSelected,
-                ]}
-                activeOpacity={0.7}
-              >
-                <Text
+            {["Không cay", "Cay", "Rất cay"].map((level, idx) => {
+              const originalLevel = ["No", "Hot", "Very hot"][idx];
+              return (
+                <TouchableOpacity
+                  key={originalLevel}
+                  onPress={() => setSelectedSpiciness(originalLevel)}
                   style={[
-                    styles.optionLabel,
-                    selectedSpiciness === level && styles.optionLabelSelected,
+                    styles.optionCard,
+                    selectedSpiciness === originalLevel &&
+                      styles.optionCardSelected,
                   ]}
+                  activeOpacity={0.7}
                 >
-                  {level}
-                </Text>
-                {selectedSpiciness === level && (
-                  <View style={styles.selectedIndicator} />
-                )}
-              </TouchableOpacity>
-            ))}
+                  <Text
+                    style={[
+                      styles.optionLabel,
+                      selectedSpiciness === originalLevel &&
+                        styles.optionLabelSelected,
+                    ]}
+                  >
+                    {level}
+                  </Text>
+                  {selectedSpiciness === originalLevel && (
+                    <View style={styles.selectedIndicator} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
         {/* Special Instructions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📝 Special Instructions</Text>
+          <Text style={styles.sectionTitle}>📝 Ghi chú đặc biệt</Text>
           <TextInput
             value={note}
             onChangeText={setNote}
-            placeholder="Add any special requests..."
+            placeholder="Thêm yêu cầu đặc biệt..."
             placeholderTextColor={COLORS.textLight}
             style={styles.noteInput}
             multiline
@@ -394,7 +418,7 @@ export default function FoodDetailsPage({
           </View>
 
           <View style={styles.totalContainer}>
-            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalLabel}>Tổng cộng</Text>
             <Text style={styles.totalPrice}>
               {totalPrice.toLocaleString("vi-VN")}đ
             </Text>
@@ -413,7 +437,7 @@ export default function FoodDetailsPage({
             style={styles.addButtonGradient}
           >
             <ShoppingCart size={20} color={COLORS.white} />
-            <Text style={styles.addButtonText}>Add to Cart</Text>
+            <Text style={styles.addButtonText}>Thêm vào giỏ</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -563,7 +587,7 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   optionCardSelected: {
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
   },
   optionContent: {
@@ -576,7 +600,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   optionLabelSelected: {
-    color: COLORS.primary,
+    color: COLORS.white,
   },
   optionPrice: {
     ...TYPOGRAPHY.caption,
@@ -584,7 +608,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   optionPriceSelected: {
-    color: COLORS.primary,
+    color: COLORS.white,
   },
   selectedIndicator: {
     position: "absolute",
@@ -607,7 +631,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.s,
   },
   toppingRowSelected: {
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
   },
   toppingLeft: {
@@ -625,11 +649,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   checkboxSelected: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    backgroundColor: COLORS.white,
+    borderColor: COLORS.white,
   },
   checkmark: {
-    color: COLORS.white,
+    color: COLORS.primary,
     fontSize: 14,
     fontWeight: "700",
   },
@@ -638,10 +662,16 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontWeight: "600",
   },
+  toppingLabelSelected: {
+    color: COLORS.white,
+  },
   toppingPrice: {
     ...TYPOGRAPHY.body,
     color: COLORS.primary,
     fontWeight: "700",
+  },
+  toppingPriceSelected: {
+    color: COLORS.white,
   },
   noteInput: {
     backgroundColor: COLORS.surface,

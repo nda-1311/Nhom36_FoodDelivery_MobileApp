@@ -144,8 +144,8 @@ export default function CartPage({ onNavigate = () => {} }: CartPageProps) {
       ),
     [items]
   );
-  const deliveryFee = 2.5;
-  const promotion = -3.2;
+  const deliveryFee = 15000; // 15.000đ
+  const promotion = -10000; // -10.000đ
   const total = subtotal + deliveryFee + promotion;
 
   // ================== CẬP NHẬT DỮ LIỆU ==================
@@ -218,7 +218,7 @@ export default function CartPage({ onNavigate = () => {} }: CartPageProps) {
     return (
       <View style={styles.centerWrapper}>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Loading your cart...</Text>
+        <Text style={styles.loadingText}>Đang tải giỏ hàng...</Text>
       </View>
     );
   }
@@ -227,8 +227,8 @@ export default function CartPage({ onNavigate = () => {} }: CartPageProps) {
     return (
       <View style={styles.centerWrapper}>
         <ShoppingBag size={80} color={COLORS.textLight} strokeWidth={1.5} />
-        <Text style={styles.emptyTitle}>Your cart is empty</Text>
-        <Text style={styles.emptySubtitle}>Add items to get started</Text>
+        <Text style={styles.emptyTitle}>Giỏ hàng đang trống</Text>
+        <Text style={styles.emptySubtitle}>Thêm món ăn để bắt đầu</Text>
 
         <TouchableOpacity
           onPress={() => onNavigate("home")}
@@ -241,7 +241,7 @@ export default function CartPage({ onNavigate = () => {} }: CartPageProps) {
             end={{ x: 1, y: 0 }}
             style={styles.emptyButtonGradient}
           >
-            <Text style={styles.emptyButtonText}>Continue Shopping</Text>
+            <Text style={styles.emptyButtonText}>Tiếp tục đặt món</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -249,12 +249,12 @@ export default function CartPage({ onNavigate = () => {} }: CartPageProps) {
   }
 
   const restaurantName =
-    items.find((i) => i.restaurant)?.restaurant || "Selected Restaurant";
+    items.find((i) => i.restaurant)?.restaurant || "Nhà hàng được chọn";
 
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={{ paddingBottom: 120 }}
+      contentContainerStyle={{ paddingBottom: 140 }}
     >
       {/* Header with gradient */}
       <LinearGradient
@@ -263,9 +263,9 @@ export default function CartPage({ onNavigate = () => {} }: CartPageProps) {
         end={{ x: 1, y: 1 }}
         style={styles.header}
       >
-        <Text style={styles.headerTitle}>🛒 Your Cart</Text>
+        <Text style={styles.headerTitle}>🛒 Giỏ hàng của bạn</Text>
         <Text style={styles.headerSubtitle}>
-          {totalQty} item{totalQty > 1 ? "s" : ""} • {restaurantName}
+          {totalQty} món • {restaurantName}
         </Text>
       </LinearGradient>
 
@@ -275,16 +275,16 @@ export default function CartPage({ onNavigate = () => {} }: CartPageProps) {
           <MapPin size={20} color={COLORS.primary} />
         </View>
         <View style={styles.deliveryInfo}>
-          <Text style={styles.deliveryTitle}>Delivery Address</Text>
+          <Text style={styles.deliveryTitle}>Địa chỉ giao hàng</Text>
           <Text style={styles.deliveryAddress}>
-            Home • 123 Main St, District 1
+            Nhà riêng • 123 Đường Chính, Quận 1
           </Text>
         </View>
       </View>
 
       {/* Cart Items */}
       <View style={styles.itemsSection}>
-        <Text style={styles.sectionTitle}>Order Items</Text>
+        <Text style={styles.sectionTitle}>Món đã chọn</Text>
         {items.map((item) => (
           <View key={item.id} style={styles.cartItem}>
             <Image
@@ -296,16 +296,27 @@ export default function CartPage({ onNavigate = () => {} }: CartPageProps) {
               style={styles.itemImage}
             />
             <View style={styles.itemContent}>
-              <Text style={styles.itemName}>{item.name}</Text>
-              {item.meta?.size && (
-                <Text style={styles.itemMeta}>Size: {item.meta.size}</Text>
-              )}
-              {Array.isArray(item.meta?.toppings) &&
-                item.meta.toppings.length > 0 && (
-                  <Text style={styles.itemMeta}>
-                    {item.meta.toppings.join(", ")}
-                  </Text>
-                )}
+              <View style={styles.itemHeader}>
+                <View style={styles.itemInfo}>
+                  <Text style={styles.itemName}>{item.name}</Text>
+                  {item.meta?.size && (
+                    <Text style={styles.itemMeta}>Cỡ: {item.meta.size}</Text>
+                  )}
+                  {Array.isArray(item.meta?.toppings) &&
+                    item.meta.toppings.length > 0 && (
+                      <Text style={styles.itemMeta}>
+                        Topping: {item.meta.toppings.join(", ")}
+                      </Text>
+                    )}
+                </View>
+                <TouchableOpacity
+                  onPress={() => removeItem(item.id)}
+                  style={styles.deleteButton}
+                  activeOpacity={0.7}
+                >
+                  <Trash2 size={18} color={COLORS.error} />
+                </TouchableOpacity>
+              </View>
 
               <View style={styles.itemFooter}>
                 <Text style={styles.itemPrice}>
@@ -320,7 +331,7 @@ export default function CartPage({ onNavigate = () => {} }: CartPageProps) {
                     style={styles.qtyButton}
                     activeOpacity={0.7}
                   >
-                    <Minus size={16} color={COLORS.primary} />
+                    <Minus size={16} color={COLORS.white} />
                   </TouchableOpacity>
                   <Text style={styles.qtyValue}>{item.quantity}</Text>
                   <TouchableOpacity
@@ -328,63 +339,57 @@ export default function CartPage({ onNavigate = () => {} }: CartPageProps) {
                     style={styles.qtyButton}
                     activeOpacity={0.7}
                   >
-                    <Plus size={16} color={COLORS.primary} />
+                    <Plus size={16} color={COLORS.white} />
                   </TouchableOpacity>
                 </View>
               </View>
             </View>
-
-            <TouchableOpacity
-              onPress={() => removeItem(item.id)}
-              style={styles.deleteButton}
-              activeOpacity={0.7}
-            >
-              <Trash2 size={18} color={COLORS.error} />
-            </TouchableOpacity>
           </View>
         ))}
       </View>
 
       {/* Promo code */}
       <View style={styles.promoSection}>
-        <View style={styles.promoInputContainer}>
-          <Tag size={20} color={COLORS.textSecondary} />
-          <TextInput
-            placeholder="Enter promo code"
-            placeholderTextColor={COLORS.textLight}
-            style={styles.promoInput}
-          />
+        <View style={styles.promoRow}>
+          <View style={styles.promoInputWrapper}>
+            <Tag size={18} color={COLORS.textSecondary} />
+            <TextInput
+              placeholder="Nhập mã giảm giá"
+              placeholderTextColor={COLORS.textLight}
+              style={styles.promoInput}
+            />
+          </View>
+          <TouchableOpacity style={styles.applyButton} activeOpacity={0.8}>
+            <Text style={styles.applyButtonText}>Áp dụng</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.applyButton} activeOpacity={0.8}>
-          <Text style={styles.applyButtonText}>Apply</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Price Summary */}
       <View style={styles.summarySection}>
-        <Text style={styles.sectionTitle}>Price Details</Text>
+        <Text style={styles.sectionTitle}>Chi tiết giá</Text>
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Subtotal</Text>
+            <Text style={styles.summaryLabel}>Tạm tính</Text>
             <Text style={styles.summaryValue}>
               {subtotal.toLocaleString("vi-VN")}đ
             </Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Delivery fee</Text>
+            <Text style={styles.summaryLabel}>Phí giao hàng</Text>
             <Text style={styles.summaryValue}>
               {deliveryFee.toLocaleString("vi-VN")}đ
             </Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabelPromo}>Promotion</Text>
+            <Text style={styles.summaryLabelPromo}>Khuyến mãi</Text>
             <Text style={styles.summaryValuePromo}>
               {promotion.toLocaleString("vi-VN")}đ
             </Text>
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryRowTotal}>
-            <Text style={styles.summaryLabelTotal}>Total</Text>
+            <Text style={styles.summaryLabelTotal}>Tổng cộng</Text>
             <Text style={styles.summaryValueTotal}>
               {total.toLocaleString("vi-VN")}đ
             </Text>
@@ -400,7 +405,7 @@ export default function CartPage({ onNavigate = () => {} }: CartPageProps) {
           activeOpacity={0.7}
         >
           <Trash2 size={18} color={COLORS.error} />
-          <Text style={styles.clearButtonText}>Clear cart</Text>
+          <Text style={styles.clearButtonText}>Xóa giỏ hàng</Text>
         </TouchableOpacity>
       </View>
 
@@ -417,7 +422,7 @@ export default function CartPage({ onNavigate = () => {} }: CartPageProps) {
             end={{ x: 1, y: 0 }}
             style={styles.checkoutButtonGradient}
           >
-            <Text style={styles.checkoutButtonText}>Proceed to Checkout</Text>
+            <Text style={styles.checkoutButtonText}>Tiến hành thanh toán</Text>
             <Text style={styles.checkoutButtonPrice}>
               {total.toLocaleString("vi-VN")}đ
             </Text>
@@ -478,7 +483,9 @@ const styles = StyleSheet.create({
 
   // Header
   header: {
-    overflow: "hidden",
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    paddingTop: 50,
   },
   headerGradient: {
     paddingHorizontal: 16,
@@ -487,13 +494,14 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: "#ffffff",
-    fontSize: 24,
-    fontWeight: "700",
+    fontSize: 26,
+    fontWeight: "800",
   },
   headerSubtitle: {
-    color: "rgba(255,255,255,0.9)",
-    fontSize: 14,
-    marginTop: 4,
+    color: "rgba(255,255,255,0.95)",
+    fontSize: 15,
+    marginTop: 6,
+    fontWeight: "500",
   },
 
   // Delivery Address Card
@@ -545,6 +553,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.l,
     padding: 12,
     marginBottom: 12,
+    flexDirection: "row",
     ...SHADOWS.small,
   },
   itemImage: {
@@ -555,7 +564,16 @@ const styles = StyleSheet.create({
   },
   itemContent: {
     flex: 1,
+  },
+  itemHeader: {
+    flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 8,
+  },
+  itemInfo: {
+    flex: 1,
+    marginRight: 8,
   },
   itemName: {
     fontSize: 15,
@@ -566,55 +584,73 @@ const styles = StyleSheet.create({
   itemMeta: {
     fontSize: 12,
     color: COLORS.textSecondary,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   itemFooter: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    marginTop: 4,
   },
   itemPrice: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 17,
+    fontWeight: "800",
     color: COLORS.primary,
   },
   quantityControl: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.surface,
     borderRadius: RADIUS.full,
-    padding: 4,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 2,
   },
   qtyButton: {
-    width: 28,
-    height: 28,
+    width: 32,
+    height: 32,
     borderRadius: RADIUS.full,
     backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
   },
   qtyValue: {
-    marginHorizontal: 12,
-    fontSize: 15,
+    marginHorizontal: 16,
+    fontSize: 16,
     fontWeight: "700",
     color: COLORS.text,
-    minWidth: 24,
+    minWidth: 28,
     textAlign: "center",
   },
   deleteButton: {
-    width: 32,
-    height: 32,
+    width: 36,
+    height: 36,
     borderRadius: RADIUS.full,
     backgroundColor: "#fee2e2",
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: 8,
   },
 
   // Promo Section
   promoSection: {
     marginHorizontal: 16,
     marginBottom: 16,
+  },
+  promoRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  promoInputWrapper: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.l,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.small,
   },
   promoInputContainer: {
     flexDirection: "row",
@@ -626,21 +662,24 @@ const styles = StyleSheet.create({
   },
   promoInput: {
     flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 10,
     fontSize: 15,
     color: COLORS.text,
   },
   applyButton: {
     backgroundColor: COLORS.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: RADIUS.m,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: RADIUS.l,
+    justifyContent: "center",
+    alignItems: "center",
+    ...SHADOWS.small,
   },
   applyButtonText: {
     color: "#ffffff",
     fontWeight: "700",
-    fontSize: 14,
+    fontSize: 15,
   },
 
   // Summary Section
