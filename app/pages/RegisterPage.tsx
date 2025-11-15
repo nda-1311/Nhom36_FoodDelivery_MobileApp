@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase/client";
+import { authService } from "@/lib/api";
 import { RegisterPageProps } from "@/types/auth";
 import { validateRegisterForm } from "@/utils/validation";
 import React, { useState } from "react";
@@ -61,23 +61,19 @@ export default function RegisterPage({ onNavigate }: RegisterPageProps) {
     setLoading(true);
 
     try {
-      // Đăng ký tài khoản với Supabase
-      const { error } = await supabase.auth.signUp({
+      // Đăng ký tài khoản với Backend API
+      const response = await authService.register({
         email,
         password,
-        options: {
-          data: {
-            full_name: name,
-            phone: phone,
-          },
-        },
+        fullName: name,
+        phoneNumber: phone,
       });
 
-      if (error) {
-        let message = error.message;
-        if (message.includes("User already registered"))
+      if (!response.success) {
+        let message = response.error || "Đăng ký thất bại";
+        if (message.includes("already exists") || message.includes("duplicate"))
           message = "Email này đã được đăng ký. Vui lòng sử dụng email khác!";
-        else if (message.includes("Password should be at least"))
+        else if (message.includes("password"))
           message = "Mật khẩu phải có ít nhất 6 ký tự!";
 
         setRegisterError(message);
@@ -88,15 +84,21 @@ export default function RegisterPage({ onNavigate }: RegisterPageProps) {
       setLoading(false);
 
       // Hiển thị thông báo thành công
-      setToastMessage("Đăng ký thành công! 🎉 Vui lòng kiểm tra email để xác nhận tài khoản.");
+      setToastMessage("Đăng ký thành công! 🎉");
       setToastType("success");
       setShowToast(true);
-      
-      // Chuyển sang trang login sau 3 giây
+
+      // Dispatch auth changed event
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("auth:changed"));
+      }
+
+      // Chuyển sang trang home sau 2 giây
       setTimeout(() => {
-        onNavigate("login");
-      }, 3000);
-    } catch {
+        onNavigate("home");
+      }, 2000);
+    } catch (error) {
+      console.error("Register error:", error);
       setRegisterError("Có lỗi xảy ra. Vui lòng thử lại!");
       setLoading(false);
     }

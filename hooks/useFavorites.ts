@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/lib/supabase/client";
+import { favoriteService } from "@/lib/api";
 
 type FavRow = {
   food_item_id: string;
@@ -11,109 +11,66 @@ type FavRow = {
   created_at?: string;
 };
 
-export function useFavorites(userId?: string) {
-  // Nếu không truyền userId, hook sẽ tự lo anonymous và lưu vào internalUserId
-  const [internalUserId, setInternalUserId] = useState<string | undefined>(
-    undefined
-  );
-  const effectiveUserId = userId ?? internalUserId;
-
+export function useFavorites() {
   const [items, setItems] = useState<FavRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // === 1) Đảm bảo có anonymous session khi không truyền userId ===
-  useEffect(() => {
-    if (userId) return; // nếu đã truyền userId từ ngoài thì bỏ qua
-
-    let mounted = true;
-
-    (async () => {
-      try {
-        // lấy session hiện tại
-        const { data: sessionData } = await supabase.auth.getSession();
-        const existingUser = sessionData.session?.user;
-        
-        console.log("🔐 [useFavorites] Current session:", {
-          hasSession: !!sessionData.session,
-          userId: existingUser?.id,
-          email: existingUser?.email,
-          isAnonymous: existingUser?.is_anonymous,
-        });
-
-        if (existingUser?.id) {
-          if (mounted) setInternalUserId(existingUser.id);
-        } else {
-          // chưa có -> đăng nhập ẩn danh
-          console.log("⚠️ [useFavorites] No session, signing in anonymously...");
-          const { data, error } = await supabase.auth.signInAnonymously();
-          if (error) {
-            console.error("❌ [useFavorites] Anonymous sign-in failed:", error);
-            return;
-          }
-          console.log("✅ [useFavorites] Anonymous sign-in success:", data.user?.id);
-          if (mounted && data.user) setInternalUserId(data.user.id);
-        }
-      } catch (e) {
-        console.error("❌ [useFavorites] Session error:", e);
-      }
-    })();
-
-    // theo dõi thay đổi auth nếu user đăng nhập/đăng xuất ở nơi khác
-    const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
-      const u = session?.user;
-      if (!userId && u?.id) setInternalUserId(u.id);
-    });
-
-    return () => {
-      mounted = false;
-      sub?.subscription?.unsubscribe();
-    };
-  }, [userId]);
-
-  // === 2) Fetch danh sách favorites của user ===
   const refresh = useCallback(async () => {
-    if (!effectiveUserId) return;
     setLoading(true);
-    const { data, error } = await supabase
-      .from("favorites")
-      .select("food_item_id, food_name, food_image, price, created_at")
-      .eq("user_id", effectiveUserId)
-      .order("created_at", { ascending: false });
+    setError(null);
 
-    setLoading(false);
-    if (!error && data) setItems(data as FavRow[]);
-    else if (error) console.error(error);
-  }, [effectiveUserId]);
+    try {
+      // Import apiClient để kiểm tra token
+      const { apiClient } = await import("@/lib/api/client");
+      const token = await apiClient.getAccessToken();
+
+      if (!token) {
+        console.log("No auth token available, skipping favorites fetch");
+        setItems([]);
+        setLoading(false);
+        return;
+      }
+
+      const response = await favoriteService.getMenuItemFavorites(1, 50);
+      console.log("Favorites API response:", response);
+
+      if (response.success && response.data) {
+        // Backend trả về { success, message, data: [...], pagination }
+        // response.data là mảng favorites trực tiếp
+        const favoritesArray = Array.isArray(response.data)
+          ? response.data
+          : [];
+
+        const transformed: FavRow[] = favoritesArray.map((fav: any) => ({
+          food_item_id: fav.menuItem.id,
+          food_name: fav.menuItem.name,
+          food_image: fav.menuItem.image,
+          price: fav.menuItem.price,
+          created_at: fav.createdAt,
+        }));
+        console.log("Transformed favorites:", transformed);
+        setItems(transformed);
+      } else {
+        setError(response.error || "Failed to fetch favorites");
+      }
+    } catch (err) {
+      console.error("Error fetching favorites:", err);
+      setError("Failed to fetch favorites");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    refresh();
+    // Delay để đảm bảo token đã load
+    const timer = setTimeout(() => {
+      refresh();
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, [refresh]);
 
-  // === 3) Realtime: lắng nghe mọi INSERT/UPDATE/DELETE trên favorites của user ===
-  useEffect(() => {
-    if (!effectiveUserId) return;
-
-    const channel = supabase
-      .channel(`favorites-${effectiveUserId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "favorites",
-          filter: `user_id=eq.${effectiveUserId}`,
-        },
-        // đơn giản: refetch mỗi khi có thay đổi
-        () => refresh()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [effectiveUserId, refresh]);
-
-  // === 4) Helpers ===
   const isFav = useCallback(
     (id: string) => items.some((i) => String(i.food_item_id) === String(id)),
     [items]
@@ -124,107 +81,81 @@ export function useFavorites(userId?: string) {
       foodId: string,
       meta?: { name?: string; image?: string; price?: number }
     ) => {
-      if (!effectiveUserId) {
-        console.error("❌ [useFavorites] No userId available for add");
-        return;
+      try {
+        console.log("Calling addMenuItemToFavorites API with foodId:", foodId);
+        const response = await favoriteService.addMenuItemToFavorites(foodId);
+        console.log("Add API response:", response);
+
+        if (response.success && response.data) {
+          console.log("Add successful, updating local state...");
+          // ✅ Cập nhật local state thay vì fetch lại
+          const newFav: FavRow = {
+            food_item_id: response.data.menuItemId,
+            food_name: meta?.name,
+            food_image: meta?.image,
+            price: meta?.price,
+            created_at: response.data.createdAt,
+          };
+          setItems((prev) => [...prev, newFav]);
+        } else {
+          throw new Error(response.error || "Failed to add favorite");
+        }
+      } catch (err) {
+        console.error("Add favorite error:", err);
+        throw err;
       }
-      
-      console.log("✅ [useFavorites] Adding favorite:", {
-        userId: effectiveUserId,
-        foodId,
-        meta,
-      });
-
-      const payload: Record<string, any> = {
-        user_id: effectiveUserId,
-        food_item_id: String(foodId),
-      };
-      if (meta?.name) payload.food_name = meta.name;
-      if (meta?.image) payload.food_image = meta.image;
-      if (meta?.price != null) payload.price = meta.price;
-
-      const { data, error } = await supabase.from("favorites").insert(payload).select();
-      
-      if (error) {
-        console.error("❌ [useFavorites] Insert error:", error);
-        throw error;
-      }
-      
-      console.log("✅ [useFavorites] Insert success:", data);
-
-      // Optimistic update (realtime cũng sẽ refresh)
-      setItems((prev) =>
-        prev.some((p) => String(p.food_item_id) === String(foodId))
-          ? prev
-          : [
-              {
-                food_item_id: String(foodId),
-                food_name: meta?.name,
-                food_image: meta?.image,
-                price: meta?.price,
-              },
-              ...prev,
-            ]
-      );
     },
-    [effectiveUserId]
+    []
   );
 
-  const remove = useCallback(
-    async (foodId: string) => {
-      if (!effectiveUserId) {
-        console.error("❌ [useFavorites] No userId available for remove");
-        return;
-      }
-      
-      console.log("✅ [useFavorites] Removing favorite:", {
-        userId: effectiveUserId,
-        foodId,
-      });
-
-      const { error } = await supabase
-        .from("favorites")
-        .delete()
-        .eq("user_id", effectiveUserId)
-        .eq("food_item_id", String(foodId));
-      
-      if (error) {
-        console.error("❌ [useFavorites] Delete error:", error);
-        throw error;
-      }
-      
-      console.log("✅ [useFavorites] Delete success");
-
-      // Optimistic update (realtime cũng sẽ refresh)
-      setItems((prev) =>
-        prev.filter((i) => String(i.food_item_id) !== String(foodId))
+  const remove = useCallback(async (foodId: string) => {
+    try {
+      console.log(
+        "Calling removeMenuItemFromFavorites API with foodId:",
+        foodId
       );
-    },
-    [effectiveUserId]
-  );
+      const response = await favoriteService.removeMenuItemFromFavorites(
+        foodId
+      );
+      console.log("Remove API response:", response);
+
+      if (response.success) {
+        console.log("Remove successful, updating local state...");
+        // ✅ Cập nhật local state thay vì fetch lại
+        setItems((prev) =>
+          prev.filter((item) => String(item.food_item_id) !== String(foodId))
+        );
+      } else {
+        throw new Error(response.error || "Failed to remove favorite");
+      }
+    } catch (err) {
+      console.error("Remove favorite error:", err);
+      throw err;
+    }
+  }, []);
 
   const toggle = useCallback(
     async (
       foodId: string,
       meta?: { name?: string; image?: string; price?: number }
     ) => {
-      if (isFav(foodId)) await remove(foodId);
-      else await add(foodId, meta);
-      // refresh() không bắt buộc vì đã có realtime + optimistic,
-      // nhưng giữ lại để chắc chắn đồng bộ
-      refresh();
+      console.log("Toggle favorite for foodId:", foodId);
+      console.log(
+        "Current favorites:",
+        items.map((i) => i.food_item_id)
+      );
+      console.log("Is favorite?", isFav(foodId));
+
+      if (isFav(foodId)) {
+        console.log("Removing from favorites...");
+        await remove(foodId);
+      } else {
+        console.log("Adding to favorites...");
+        await add(foodId, meta);
+      }
     },
-    [isFav, add, remove, refresh]
+    [isFav, add, remove, items]
   );
 
-  return {
-    items,
-    loading,
-    isFav,
-    add,
-    remove,
-    toggle,
-    refresh,
-    userId: effectiveUserId,
-  };
+  return { items, loading, error, isFav, add, remove, toggle, refresh };
 }

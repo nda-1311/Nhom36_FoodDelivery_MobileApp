@@ -1,6 +1,5 @@
 import { COLORS, RADIUS, SHADOWS } from "@/constants/design";
 import { useAdmin } from "@/hooks/useAdmin";
-import { supabase } from "@/lib/supabase/client";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   Bell,
@@ -61,43 +60,48 @@ export default function AccountPage({ onNavigate, data }: AccountPageProps) {
     avatar: "U",
   });
 
-  // Fetch user data from Supabase
+  // Fetch user data from Backend API
   useEffect(() => {
     const fetchUserData = async () => {
       setUserLoading(true);
       try {
-        const {
-          data: { user },
-          error: authError,
-        } = await supabase.auth.getUser();
+        // Import authService dynamically to avoid circular dependency
+        const { authService } = await import("@/lib/api/auth");
 
-        if (authError || !user) {
-          console.error("Error getting user:", authError);
+        // Check if user is authenticated
+        const isAuthenticated = await authService.isAuthenticated();
+        console.log("📱 AccountPage - isAuthenticated:", isAuthenticated);
+
+        if (!isAuthenticated) {
+          console.log("User not authenticated");
           setUserLoading(false);
           return;
         }
 
-        // Fetch user profile from users table
-        const { data: userData } = await supabase
-          .from("users")
-          .select("*")
-          .eq("id", user.id)
-          .maybeSingle();
+        // Fetch user profile from backend API
+        console.log("📡 AccountPage - Fetching user profile...");
+        const response = await authService.getCurrentUser();
+        console.log("📡 AccountPage - Response:", response);
 
-        // Fetch total orders count
-        const { count: ordersCount } = await supabase
-          .from("orders")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", user.id);
+        if (!response.success || !response.data) {
+          console.error("Error getting user:", response.message);
+          setUserLoading(false);
+          return;
+        }
 
-        const userName = userData?.name || user.user_metadata?.name || "User";
+        const user = response.data;
+
+        // TODO: Fetch total orders count from backend
+        // For now, set to 0
+        const totalOrders = 0;
+
+        const userName = user.fullName || "User";
         const userEmail = user.email || "";
-        const userPhone = userData?.phone || user.user_metadata?.phone || "";
-        const userRating = userData?.rating || 0;
-        const totalOrders = ordersCount || 0;
+        const userPhone = user.phoneNumber || "";
+        const userRating = 0; // TODO: Get from backend if available
 
         // Format member since date
-        const createdDate = new Date(userData?.created_at || user.created_at);
+        const createdDate = new Date(user.createdAt);
         const memberSince = createdDate.toLocaleDateString("vi-VN", {
           month: "long",
           year: "numeric",
@@ -137,21 +141,21 @@ export default function AccountPage({ onNavigate, data }: AccountPageProps) {
     }
   }, [data?.refresh]);
 
-  // ✅ Đăng xuất khỏi Supabase
+  // ✅ Đăng xuất khỏi Backend API
   const handleLogout = async () => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signOut();
 
-      if (error) {
-        console.error("Lỗi đăng xuất:", error.message);
-        Alert.alert("Đăng xuất thất bại", error.message);
-      } else {
-        console.log("✅ Đã đăng xuất Supabase thành công");
-        onNavigate("login");
-      }
+      // Import authService dynamically
+      const { authService } = await import("@/lib/api/auth");
+
+      // Logout from backend (clears tokens)
+      await authService.logout();
+
+      console.log("✅ Đã đăng xuất thành công");
+      onNavigate("login");
     } catch (err) {
-      console.error(err);
+      console.error("Lỗi đăng xuất:", err);
       Alert.alert("Lỗi", "Có lỗi xảy ra khi đăng xuất!");
     } finally {
       setLoading(false);

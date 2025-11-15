@@ -1,5 +1,5 @@
 import { COLORS } from "@/constants/design";
-import { supabase } from "@/lib/supabase/client";
+import { getFoodImage } from "@/utils/foodImageMap";
 import { LinearGradient } from "expo-linear-gradient";
 import { ArrowLeft, Search, SlidersHorizontal, X } from "lucide-react-native";
 import React, { useEffect, useMemo, useState } from "react";
@@ -14,19 +14,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-// 🖼️ Map ảnh tĩnh như HomePage
-const IMAGE_MAP: Record<string, any> = {
-  "/com-tam-suon-bi-cha.jpg": require("@/assets/public/com-tam-suon-bi-cha.jpg"),
-  "/classic-beef-burger.png": require("@/assets/public/classic-beef-burger.png"),
-  "/comga_xoimo.jpg": require("@/assets/public/comga_xoimo.jpg"),
-  "/buncha_hanoi.jpg": require("@/assets/public/buncha_hanoi.jpg"),
-  "/milk-drink.jpg": require("@/assets/public/milk-drink.jpg"),
-  "/trasuamatcha_master.png": require("@/assets/public/trasuamatcha_master.png"),
-  "/colorful-fruit-smoothie.png": require("@/assets/public/colorful-fruit-smoothie.png"),
-  "/pizza-xuc-xich-pho-mai-vuong.jpg": require("@/assets/public/pizza-xuc-xich-pho-mai-vuong.jpg"),
-  "/creamy-chicken-salad.png": require("@/assets/public/creamy-chicken-salad.png"),
-};
 
 type FoodItem = {
   id: string | number;
@@ -77,20 +64,23 @@ export default function SearchPage({
   // Lấy danh mục
   useEffect(() => {
     (async () => {
-      const { data, error } = await supabase
-        .from("food_items")
-        .select("category, collection");
-      if (!error && data) {
-        setCategories(
-          Array.from(
-            new Set(data.map((r) => r.category).filter(Boolean))
-          ).sort()
-        );
-        setCollections(
-          Array.from(
-            new Set(data.map((r) => r.collection).filter(Boolean))
-          ).sort()
-        );
+      try {
+        const response = await fetch("http://localhost:5000/api/v1/food");
+        const result = await response.json();
+        if (result.success && result.data) {
+          const items = result.data;
+          setCategories(
+            Array.from(
+              new Set(
+                items.map((r: any) => r.categoryId).filter(Boolean) as string[]
+              )
+            ).sort()
+          );
+          // Note: Backend không có collection field, tạm thời để trống
+          setCollections([]);
+        }
+      } catch (err) {
+        console.error("Failed to load categories:", err);
       }
     })();
   }, []);
@@ -99,43 +89,59 @@ export default function SearchPage({
     setLoading(true);
     setError(null);
     try {
-      const from = pageIndex * PAGE_SIZE;
-      const to = from + PAGE_SIZE - 1;
+      // Build query params
+      const params = new URLSearchParams();
+      params.append("page", String(pageIndex + 1));
+      params.append("limit", String(PAGE_SIZE));
 
-      let qBuilder = supabase
-        .from("food_items")
-        .select("id, name, image_url, price, rating, category, collection", {
-          count: "exact",
-        });
+      if (q.trim()) params.append("search", q.trim());
+      if (category) params.append("category", category);
 
-      if (category) qBuilder = qBuilder.eq("category", category);
-      if (collection) qBuilder = qBuilder.eq("collection", collection);
-      if (q.trim()) qBuilder = qBuilder.ilike("name", `%${q.trim()}%`);
-
+      // Sort mapping
+      let sortBy = "name";
+      let sortOrder = "asc";
       switch (sort) {
         case "price_asc":
-          qBuilder = qBuilder.order("price", { ascending: true });
+          sortBy = "price";
+          sortOrder = "asc";
           break;
         case "price_desc":
-          qBuilder = qBuilder.order("price", { ascending: false });
+          sortBy = "price";
+          sortOrder = "desc";
           break;
-        case "newest":
-          qBuilder = qBuilder.order("created_at", { ascending: false });
+        case "rating_desc":
+          // Backend không hỗ trợ sort by rating, dùng name thay thế
+          sortBy = "name";
+          sortOrder = "asc";
           break;
-        default:
-          qBuilder = qBuilder.order("rating", { ascending: false });
       }
+      params.append("sortBy", sortBy);
+      params.append("sortOrder", sortOrder);
 
-      qBuilder = qBuilder.range(from, to);
+      const response = await fetch(
+        `http://localhost:5000/api/v1/food?${params}`
+      );
+      const result = await response.json();
 
-      const { data, error, count } = await qBuilder;
-      if (error) throw error;
+      if (!result.success) throw new Error(result.message);
 
-      if (pageIndex === 0) setFoods(data ?? []);
-      else setFoods((prev) => [...prev, ...(data ?? [])]);
+      const data = result.data || [];
+      // Transform data
+      const transformed = data.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        image_url: item.image,
+        price: item.price,
+        rating: 4.5,
+        category: item.categoryId,
+        collection: null,
+      }));
 
-      const total = count ?? 0;
-      setHasMore(to + 1 < total);
+      if (pageIndex === 0) setFoods(transformed);
+      else setFoods((prev) => [...prev, ...transformed]);
+
+      // Check if has more (simple: if we got less than PAGE_SIZE, no more)
+      setHasMore(data.length >= PAGE_SIZE);
       setPage(pageIndex);
     } catch (e: any) {
       setError(e.message ?? "Failed to load results");
@@ -146,6 +152,7 @@ export default function SearchPage({
 
   useEffect(() => {
     fetchPage(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, category, collection, sort]);
 
   const activeChips = useMemo(
@@ -315,11 +322,7 @@ export default function SearchPage({
                 style={styles.card}
               >
                 <Image
-                  source={
-                    item.image_url && IMAGE_MAP[item.image_url]
-                      ? IMAGE_MAP[item.image_url]
-                      : require("@/assets/public/placeholder.jpg")
-                  }
+                  source={getFoodImage(item.name)}
                   style={styles.cardImg}
                 />
                 <Text style={styles.cardTitle}>{item.name}</Text>

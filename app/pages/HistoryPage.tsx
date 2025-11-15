@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase/client";
+import { orderService } from "@/lib/api/orders";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   CheckCircle2,
@@ -42,14 +42,36 @@ export default function HistoryPage({ onNavigate }: HistoryPageProps) {
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchOrders = async () => {
-    const { data, error } = await supabase
-      .from("orders")
-      .select("*")
-      .order("created_at", { ascending: false });
+    try {
+      console.log("Fetching orders from API...");
+      const response = await orderService.getOrderHistory({
+        page: 1,
+        limit: 100,
+      });
+      console.log("Orders response:", response);
 
-    if (!error && data) setOrders(data);
-    setLoading(false);
-    setRefreshing(false);
+      if (response.success) {
+        // Backend trả về { success, message, data, pagination }
+        // data là mảng orders
+        const ordersData = response.data || [];
+        console.log("Orders data:", ordersData);
+
+        const mappedOrders = ordersData.map((order: any) => ({
+          id: order.id,
+          order_number: order.orderNumber,
+          total: order.total,
+          status: order.status,
+          created_at: order.createdAt,
+        }));
+        console.log("Mapped orders:", mappedOrders);
+        setOrders(mappedOrders);
+      }
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
   useEffect(() => {

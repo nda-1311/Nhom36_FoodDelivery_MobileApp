@@ -1,6 +1,5 @@
-import { generateOTP, sendOTPEmail } from "@/lib/emailService";
-import { supabase } from "@/lib/supabase/client";
 import { ForgotPasswordPageProps } from "@/types/auth";
+import { authService } from "@/lib/api/auth";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -41,7 +40,7 @@ export default function ForgotPasswordPage({
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState<ToastType>("success");
 
-  // 📧 Bước 1: Gửi OTP về email
+  // 📧 Bước 1: Gửi OTP về email qua Backend API
   const handleSendOTP = async () => {
     // Clear previous errors
     setErrors({});
@@ -59,59 +58,28 @@ export default function ForgotPasswordPage({
 
     setLoading(true);
     try {
-      // Bước 1: Kiểm tra email có tồn tại không
-      const { error: supabaseOtpError } = await supabase.auth.signInWithOtp({
+      console.log("📧 Sending forgot password request for:", email);
+
+      // Gọi backend API để gửi OTP
+      const response = await authService.forgotPassword({
         email: email.trim().toLowerCase(),
-        options: {
-          shouldCreateUser: false,
-        },
       });
 
-      if (supabaseOtpError) {
-        console.error("Supabase OTP error:", supabaseOtpError);
-        setErrors({ email: "Email không tồn tại trong hệ thống" });
-        setToastMessage("Email không tồn tại trong hệ thống");
+      console.log("📊 Forgot password response:", response);
+
+      if (response.success) {
+        setStep("verify");
+        setToastMessage(
+          "Mã OTP 6 số đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư."
+        );
+        setToastType("success");
+        setShowToast(true);
+      } else {
+        setErrors({ email: response.message || "Không thể gửi mã OTP" });
+        setToastMessage(response.message || "Không thể gửi mã OTP");
         setToastType("error");
         setShowToast(true);
-        return;
       }
-
-      // Bước 2: Tạo mã OTP 6 số
-      const generatedOTP = generateOTP();
-      console.log("🔐 Generated OTP:", generatedOTP);
-
-      // Bước 3: Lưu OTP vào database
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 phút
-      const { error: insertError } = await supabase
-        .from("password_reset_tokens")
-        .insert({
-          email: email.trim().toLowerCase(),
-          otp_code: generatedOTP,
-          expires_at: expiresAt,
-        });
-
-      if (insertError) {
-        console.error("Insert OTP error:", insertError);
-        setToastMessage("Không thể lưu mã OTP");
-        setToastType("error");
-        setShowToast(true);
-        return;
-      }
-
-      // Bước 4: Gửi OTP qua EmailJS
-      const emailSent = await sendOTPEmail(email.trim(), generatedOTP);
-
-      if (!emailSent) {
-        setToastMessage("Không thể gửi email. Vui lòng kiểm tra cấu hình EmailJS.");
-        setToastType("error");
-        setShowToast(true);
-        return;
-      }
-
-      setStep("verify");
-      setToastMessage("Mã OTP 6 số đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.");
-      setToastType("success");
-      setShowToast(true);
     } catch (error: any) {
       console.error("Send OTP error:", error);
       setToastMessage(error.message || "Không thể gửi mã OTP");
@@ -122,7 +90,7 @@ export default function ForgotPasswordPage({
     }
   };
 
-  // ✅ Bước 2: Xác thực OTP và đổi mật khẩu
+  // ✅ Bước 2: Xác thực OTP và đổi mật khẩu qua Backend API
   const handleVerifyAndReset = async () => {
     // Clear previous errors
     setErrors({});
@@ -142,8 +110,6 @@ export default function ForgotPasswordPage({
       newErrors.newPassword = "Vui lòng nhập mật khẩu mới";
     } else if (newPassword.length < 6) {
       newErrors.newPassword = "Mật khẩu phải có ít nhất 6 ký tự";
-    } else if (!/(?=.*[a-zA-Z])/.test(newPassword)) {
-      newErrors.newPassword = "Mật khẩu phải có ít nhất 1 chữ cái";
     }
 
     if (!confirmPassword.trim()) {
@@ -159,58 +125,47 @@ export default function ForgotPasswordPage({
 
     setLoading(true);
     try {
-      console.log("🔄 Calling RPC function with:", {
+      console.log("🔄 Resetting password with OTP:", {
         email: email.trim().toLowerCase(),
         otp: otp.trim(),
       });
 
-      // Gọi RPC function để verify OTP và reset password
-      const { data, error } = await supabase.rpc("reset_password_with_otp", {
-        user_email: email.trim().toLowerCase(),
-        otp_code_input: otp.trim(),
-        new_password: newPassword,
+      // Gọi backend API để reset password
+      const response = await authService.resetPassword({
+        token: otp.trim(),
+        newPassword: newPassword,
       });
 
-      console.log("📊 RPC Response:", { data, error });
+      console.log("📊 Reset password response:", response);
 
-      if (error) {
-        console.error("❌ RPC error:", error);
-        setToastMessage(`Không thể đổi mật khẩu: ${error.message}`);
-        setToastType("error");
+      if (response.success) {
+        // Thành công!
+        console.log("🎉 Password reset successful!");
+        setToastMessage(
+          "Mật khẩu đã được đổi thành công! 🎉 Bạn có thể đăng nhập bằng mật khẩu mới."
+        );
+        setToastType("success");
         setShowToast(true);
-        return;
-      }
 
-      console.log("✅ RPC data:", data);
-
-      // Check result from function
-      if (!data || data.success === false) {
-        console.log("❌ Failed:", data?.error);
-        const errorMsg = data?.error || "Mã OTP không đúng hoặc đã hết hạn";
+        // Navigate sau 3s để người dùng thấy thông báo
+        setTimeout(() => {
+          console.log("Navigating to login...");
+          setStep("email");
+          setEmail("");
+          setOtp("");
+          setNewPassword("");
+          setConfirmPassword("");
+          setErrors({});
+          onNavigate("login");
+        }, 3000);
+      } else {
+        const errorMsg =
+          response.message || "Mã OTP không đúng hoặc đã hết hạn";
         setErrors({ otp: errorMsg });
         setToastMessage(errorMsg);
         setToastType("error");
         setShowToast(true);
-        return;
       }
-
-      // Thành công!
-      console.log("🎉 Success! Showing toast...");
-      setToastMessage("Mật khẩu đã được đổi thành công! 🎉 Bạn có thể đăng nhập bằng mật khẩu mới.");
-      setToastType("success");
-      setShowToast(true);
-
-      // Navigate sau 3s để người dùng thấy thông báo
-      setTimeout(() => {
-        console.log("Navigating to login...");
-        setStep("email");
-        setEmail("");
-        setOtp("");
-        setNewPassword("");
-        setConfirmPassword("");
-        setErrors({});
-        onNavigate("login");
-      }, 3000);
     } catch (error: any) {
       console.error("Reset password error:", error);
       setToastMessage(error.message || "Không thể đổi mật khẩu");

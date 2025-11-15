@@ -1,6 +1,6 @@
 import { COLORS, RADIUS, SHADOWS } from "@/constants/design";
-import { getCartKey } from "@/lib/cartKey";
-import { supabase } from "@/lib/supabase/client";
+import { cartService } from "@/lib/api";
+import { apiClient } from "@/lib/api/client";
 import { useCart } from "@/store/cart-context";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -46,36 +46,68 @@ type CartRow = {
 };
 
 export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
-  const { syncFromServer, setCartCount } = useCart(); // ✅ thêm setCartCount để cập nhật realtime
-  const [cartKey, setCartKey] = useState<string>("");
+  const { syncFromServer, setCartCount } = useCart();
   const [items, setItems] = useState<CartRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPayment, setSelectedPayment] = useState("ewallet");
   const [selectedAddress, setSelectedAddress] = useState("home");
+  const [restaurantId, setRestaurantId] = useState<string | null>(null);
+  const [userAddressId, setUserAddressId] = useState<string | null>(null);
 
-  // Lấy cart key
+  // Fetch cart and user address from API
   useEffect(() => {
-    (async () => {
-      const key = await getCartKey();
-      setCartKey(key);
-    })();
-  }, []);
+    const fetchData = async () => {
+      try {
+        // Fetch cart
+        const cartResponse = await cartService.getCart();
+        if (cartResponse.success && cartResponse.data) {
+          const cartItems = cartResponse.data.items.map((item: any) => ({
+            id: item.id,
+            cart_key: item.cartId,
+            food_item_id: item.menuItemId,
+            name: item.menuItem.name,
+            price: item.menuItem.price,
+            quantity: item.quantity,
+            image: item.menuItem.image,
+            meta: item.specialInstructions
+              ? { notes: item.specialInstructions }
+              : {},
+            restaurant: item.menuItem.restaurant?.name || null,
+            restaurant_id: item.menuItem.restaurantId,
+          }));
+          setItems(cartItems);
 
-  // Lấy giỏ hàng từ Supabase
-  useEffect(() => {
-    if (!cartKey) return;
-    const fetchCart = async () => {
-      const { data, error } = await supabase
-        .from("cart_items")
-        .select("*")
-        .eq("cart_key", cartKey)
-        .order("created_at", { ascending: true });
+          // Set restaurant ID from first item
+          if (cartItems.length > 0 && cartItems[0].restaurant_id) {
+            setRestaurantId(cartItems[0].restaurant_id);
+          }
+        }
 
-      if (!error && data) setItems(data as CartRow[]);
-      setLoading(false);
+        // Fetch user addresses
+        try {
+          const addressResponse = await apiClient.get("/addresses");
+          if (
+            addressResponse.success &&
+            addressResponse.data &&
+            addressResponse.data.length > 0
+          ) {
+            // Use first address or default address
+            const defaultAddr =
+              addressResponse.data.find((a: any) => a.isDefault) ||
+              addressResponse.data[0];
+            setUserAddressId(defaultAddr.id);
+          }
+        } catch (addrError) {
+          console.warn("Could not fetch addresses:", addrError);
+        }
+      } catch (error) {
+        console.error("Error fetching cart:", error);
+      } finally {
+        setLoading(false);
+      }
     };
-    fetchCart();
-  }, [cartKey]);
+    fetchData();
+  }, []);
 
   const deliveryFee = 15000; // 15.000đ
   const promotion = -10000; // -10.000đ
@@ -97,96 +129,99 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
       return;
     }
 
+    if (!userAddressId) {
+      Alert.alert(
+        "Lỗi",
+        "Không tìm thấy địa chỉ giao hàng! Vui lòng thêm địa chỉ."
+      );
+      return;
+    }
+
     try {
       setLoading(true);
-      const firstItem = items[0];
-      let restaurantId = firstItem?.restaurant_id || null;
 
-      // Nếu chưa có restaurant_id → lấy từ food_items
-      if (!restaurantId && firstItem?.food_item_id) {
-        const { data: foodRow } = await supabase
-          .from("food_items")
-          .select("restaurant_id")
-          .eq("id", firstItem.food_item_id)
-          .maybeSingle();
-        if (foodRow?.restaurant_id) restaurantId = foodRow.restaurant_id;
-      }
+      // ✅ 1. Create order using API
+      const orderData = {
+        addressId: userAddressId, // Use user's address ID
+        paymentMethod:
+          selectedPayment === "ewallet"
+            ? "E_WALLET"
+            : selectedPayment === "card"
+            ? "CREDIT_CARD"
+            : "CASH",
+        specialInstructions: "",
+      };
 
-      // Nếu vẫn null → fallback tìm theo tên nhà hàng
-      if (!restaurantId && typeof firstItem?.restaurant === "string") {
-        const { data: rest } = await supabase
-          .from("restaurants")
-          .select("id")
-          .ilike("name", `%${firstItem.restaurant}%`)
-          .maybeSingle();
-        if (rest?.id) restaurantId = rest.id;
-      }
+      console.log("📤 Creating order with data:", orderData);
 
-      if (!restaurantId) {
-        Alert.alert("Lỗi", "Không tìm thấy nhà hàng cho đơn hàng này!");
-        setLoading(false);
-        return;
-      }
+      let response;
+      let orderId;
 
-      // ✅ 1. Tạo đơn hàng trong bảng orders
-      const { data: orderData, error: orderError } = await supabase
-        .from("orders")
-        .insert([
-          {
-            user_id: null,
-            restaurant_id: restaurantId,
-            status: "Pending",
-            delivery_address: selectedAddress,
-            delivery_time: 20,
-            subtotal,
-            delivery_fee: deliveryFee,
-            discount: promotion,
-            total,
-            payment_method: selectedPayment,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
+      try {
+        // Get access token
+        const token = await apiClient.getAccessToken();
+
+        if (!token) {
+          Alert.alert("Lỗi", "Vui lòng đăng nhập lại!");
+          setLoading(false);
+          return;
+        }
+
+        // Call API using fetch directly
+        const apiUrl = "http://localhost:5000/api/v1/orders";
+        console.log("🌐 Calling:", apiUrl);
+
+        const fetchResponse = await fetch(apiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
-        ])
-        .select("id")
-        .single();
+          body: JSON.stringify(orderData),
+        });
 
-      if (orderError || !orderData) {
-        Alert.alert("Lỗi", "Không thể tạo đơn hàng!");
+        const responseData = await fetchResponse.json();
+        console.log("📥 Raw response:", responseData);
+
+        if (!fetchResponse.ok || !responseData.success) {
+          const errorMsg =
+            responseData.message ||
+            responseData.error ||
+            "Không thể tạo đơn hàng!";
+          console.error("❌ Order creation failed:", errorMsg);
+          Alert.alert("Lỗi", errorMsg);
+          setLoading(false);
+          return;
+        }
+
+        response = responseData;
+        orderId = responseData.data.id;
+        console.log("✅ Order created successfully:", orderId);
+      } catch (apiError: any) {
+        console.error("❌ API Error:", apiError);
+        Alert.alert("Lỗi", apiError.message || "Không thể kết nối đến server!");
         setLoading(false);
         return;
       }
 
-      const orderId = orderData.id;
-
-      // ✅ 2. Tạo order_items
-      const orderItems = items.map((item) => ({
-        order_id: orderId,
-        food_item_id: item.food_item_id,
-        quantity: item.quantity,
-        price: item.price,
-        selected_options: item.meta || {},
-        special_instructions: "",
-        created_at: new Date().toISOString(),
-      }));
-
-      const { error: itemsError } = await supabase
-        .from("order_items")
-        .insert(orderItems);
-      if (itemsError) {
-        Alert.alert("Lỗi", "Không thể lưu chi tiết đơn hàng!");
-        setLoading(false);
-        return;
+      // ✅ 2. Clear cart using API
+      try {
+        await cartService.clearCart();
+      } catch (error) {
+        console.log("Cart clear error (non-critical):", error);
       }
 
-      // ✅ 3. Xóa giỏ hàng trong Supabase
-      await supabase.from("cart_items").delete().eq("cart_key", cartKey);
-
-      // ✅ 4. Giải phóng giỏ hàng local + cập nhật badge realtime
+      // ✅ 3. Clear local cart + update badge
       setItems([]);
-      syncFromServer([]); // dọn context items
-      setCartCount(0); // cập nhật badge ngay lập tức
+      syncFromServer([]);
+      setCartCount(0);
 
-      // ✅ 5. Thông báo thành công + điều hướng
+      // Dispatch cart changed event
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("cart:changed"));
+      }
+
+      // ✅ 4. Show success + navigate
       Alert.alert("🎉 Thành công!", "Đơn hàng đã được tạo thành công.");
       onNavigate("order-tracking", { orderId });
     } catch (err: any) {

@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase/client";
+import { orderService } from "@/lib/api/orders";
 import {
   CheckCircle,
   ChevronLeft,
@@ -62,68 +62,53 @@ export default function TrackOrderPage({
     }
 
     const fetchOrder = async () => {
-      const { data: orderData, error } = await supabase
-        .from("orders")
-        .select(
-          `
-          *,
-          restaurant:restaurants(name, cuisine),
-          delivery_assignment:delivery_assignments(
-            driver:drivers(id, name, phone, vehicle_number, status)
-          )
-        `
-        )
-        .eq("id", data.orderId)
-        .single();
+      try {
+        const response = await orderService.trackOrder(data.orderId);
 
-      if (error) {
+        if (!response.success || !response.data) {
+          throw new Error(response.message || "Failed to track order");
+        }
+
+        const orderData = response.data;
+        setOrder(orderData as OrderData);
+        setLoading(false);
+
+        // Set initial progress based on status
+        switch (orderData.status) {
+          case "Pending":
+            setProgress(10);
+            break;
+          case "Confirmed":
+            setProgress(25);
+            break;
+          case "Preparing":
+            setProgress(50);
+            break;
+          case "On the way":
+            setProgress(75);
+            break;
+          case "Delivered":
+            setProgress(100);
+            break;
+          default:
+            setProgress(0);
+        }
+      } catch (error) {
         console.error("Error fetching order:", error);
         Alert.alert("Lỗi", "Không thể tải thông tin đơn hàng");
         setLoading(false);
-        return;
-      }
-
-      setOrder(orderData as OrderData);
-      setLoading(false);
-
-      // Set initial progress based on status
-      switch (orderData.status) {
-        case "Pending":
-          setProgress(10);
-          break;
-        case "Confirmed":
-          setProgress(25);
-          break;
-        case "Preparing":
-          setProgress(50);
-          break;
-        case "On the way":
-          setProgress(75);
-          break;
-        case "Delivered":
-          setProgress(100);
-          break;
-        default:
-          setProgress(0);
       }
     };
 
     fetchOrder();
 
-    // Realtime subscription for order updates
-    const channel = supabase
-      .channel(`order:${data.orderId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "orders",
-          filter: `id=eq.${data.orderId}`,
-        },
-        (payload) => {
-          const updated = payload.new as any;
-          setOrder((prev) => (prev ? { ...prev, ...updated } : null));
+    // Poll for order updates every 5 seconds (replacing realtime subscription)
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await orderService.trackOrder(data.orderId);
+        if (response.success && response.data) {
+          const updated = response.data;
+          setOrder(updated as OrderData);
 
           // Update progress
           switch (updated.status) {
@@ -141,14 +126,17 @@ export default function TrackOrderPage({
               break;
             case "Delivered":
               setProgress(100);
+              clearInterval(pollInterval); // Stop polling when delivered
               break;
           }
         }
-      )
-      .subscribe();
+      } catch (error) {
+        console.error("Error polling order:", error);
+      }
+    }, 5000);
 
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(pollInterval);
     };
   }, [data?.orderId]);
 

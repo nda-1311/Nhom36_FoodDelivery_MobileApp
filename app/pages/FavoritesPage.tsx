@@ -1,5 +1,6 @@
 import { COLORS } from "@/constants/design";
 import { useFavorites } from "@/hooks/useFavorites";
+import { getFoodImage } from "@/utils/foodImageMap";
 import { ChevronLeft, Heart } from "lucide-react-native";
 import React, { useMemo } from "react";
 import {
@@ -12,19 +13,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-// Map ảnh static
-const IMAGE_MAP: Record<string, any> = {
-  "/com-tam-suon-bi-cha.jpg": require("@/assets/public/com-tam-suon-bi-cha.jpg"),
-  "/classic-beef-burger.png": require("@/assets/public/classic-beef-burger.png"),
-  "/comga_xoimo.jpg": require("@/assets/public/comga_xoimo.jpg"),
-  "/buncha_hanoi.jpg": require("@/assets/public/buncha_hanoi.jpg"),
-  "/milk-drink.jpg": require("@/assets/public/milk-drink.jpg"),
-  "/trasuamatcha_master.png": require("@/assets/public/trasuamatcha_master.png"),
-  "/colorful-fruit-smoothie.png": require("@/assets/public/colorful-fruit-smoothie.png"),
-  "/pizza-xuc-xich-pho-mai-vuong.jpg": require("@/assets/public/pizza-xuc-xich-pho-mai-vuong.jpg"),
-  "/creamy-chicken-salad.png": require("@/assets/public/creamy-chicken-salad.png"),
-};
 
 interface FavoritesPageProps {
   onNavigate: (page: string, data?: any) => void;
@@ -102,54 +90,42 @@ export default function FavoritesPage({
           </View>
         ) : (
           list.map((item) => {
-            // Normalize image path - thử cả với và không có dấu /
-            let imageSource = require("@/assets/public/placeholder.jpg");
-            if (item.image) {
-              const pathWithSlash = item.image.startsWith("/") ? item.image : `/${item.image}`;
-              const pathWithoutSlash = item.image.startsWith("/") ? item.image.slice(1) : item.image;
-              
-              if (IMAGE_MAP[item.image]) {
-                imageSource = IMAGE_MAP[item.image];
-              } else if (IMAGE_MAP[pathWithSlash]) {
-                imageSource = IMAGE_MAP[pathWithSlash];
-              } else if (IMAGE_MAP[pathWithoutSlash]) {
-                imageSource = IMAGE_MAP[pathWithoutSlash];
-              }
-            }
+            // Use getFoodImage utility
+            const imageSource = getFoodImage(item.name, item.image);
 
             return (
-            <View key={item.id} style={styles.card}>
-              <Image
-                source={imageSource}
-                style={styles.image}
-                onError={(e) => {
-                  console.log(
-                    `Failed to load image for favorite item: ${item.name}, path: ${item.image}`,
-                    e.nativeEvent.error
-                  );
-                }}
-              />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.itemName}>{item.name}</Text>
-                {typeof item.price === "number" && (
-                  <Text style={styles.price}>{item.price}đ</Text>
-                )}
-                <View style={styles.actions}>
-                  <TouchableOpacity
-                    style={styles.viewButton}
-                    onPress={() => onNavigate("food-details", item)}
-                  >
-                    <Text style={styles.viewButtonText}>Xem chi tiết</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => handleToggleFavorite(item)}
-                    style={styles.heartButton}
-                  >
-                    <Heart size={18} color="#ef4444" fill="#ef4444" />
-                  </TouchableOpacity>
+              <View key={item.id} style={styles.card}>
+                <Image
+                  source={imageSource}
+                  style={styles.image}
+                  onError={(e) => {
+                    console.log(
+                      `Failed to load image for favorite item: ${item.name}, path: ${item.image}`,
+                      e.nativeEvent.error
+                    );
+                  }}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.itemName}>{item.name}</Text>
+                  {typeof item.price === "number" && (
+                    <Text style={styles.price}>{item.price}đ</Text>
+                  )}
+                  <View style={styles.actions}>
+                    <TouchableOpacity
+                      style={styles.viewButton}
+                      onPress={() => onNavigate("food-details", item)}
+                    >
+                      <Text style={styles.viewButtonText}>Xem chi tiết</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleToggleFavorite(item)}
+                      style={styles.heartButton}
+                    >
+                      <Heart size={18} color="#ef4444" fill="#ef4444" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
-            </View>
             );
           })
         )}

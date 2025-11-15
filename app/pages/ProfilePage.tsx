@@ -1,5 +1,5 @@
 import { COLORS, RADIUS, SHADOWS, SPACING } from "@/constants/design";
-import { supabase } from "@/lib/supabase/client";
+import { authService } from "@/lib/api/auth";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   Camera,
@@ -58,34 +58,22 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps) {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const {
-          data: { user },
-          error: authError,
-        } = await supabase.auth.getUser();
+        const response = await authService.getCurrentUser();
 
-        if (authError || !user) {
+        if (!response.success || !response.data) {
           Alert.alert("Lỗi", "Không thể lấy thông tin người dùng");
           setLoading(false);
           return;
         }
 
-        // Fetch user profile from users table
-        const { data: userData, error: userError } = await supabase
-          .from("users")
-          .select("*")
-          .eq("id", user.id)
-          .maybeSingle();
-
-        if (userError) {
-          console.error("Error fetching user profile:", userError);
-        }
+        const user = response.data;
 
         const profileData: UserProfile = {
           id: user.id,
-          name: userData?.name || user.user_metadata?.name || "User",
+          name: user.fullName || "User",
           email: user.email || "",
-          phone: userData?.phone || user.user_metadata?.phone || "",
-          avatar: userData?.avatar || user.user_metadata?.avatar,
+          phone: user.phoneNumber || "",
+          avatar: user.avatar,
         };
 
         setProfile(profileData);
@@ -115,40 +103,13 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps) {
     setSaving(true);
 
     try {
-      // First, update auth metadata
-      const { error: authError } = await supabase.auth.updateUser({
-        data: {
-          name: editedProfile.name,
-          phone: editedProfile.phone,
-        },
+      const response = await authService.updateProfile({
+        fullName: editedProfile.name,
+        phoneNumber: editedProfile.phone,
       });
 
-      if (authError) {
-        console.error("Auth update error:", authError);
-        throw authError;
-      }
-
-      // Then try to update users table (if RLS allows)
-      const { error: tableError } = await supabase
-        .from("users")
-        .update({
-          name: editedProfile.name,
-          phone: editedProfile.phone,
-        })
-        .eq("id", profile.id);
-
-      // If table update fails, try to insert (ignore error if RLS blocks)
-      if (tableError) {
-        console.log("Table update failed, trying insert:", tableError.message);
-        await supabase.from("users").insert([
-          {
-            id: profile.id,
-            email: profile.email,
-            name: editedProfile.name,
-            phone: editedProfile.phone,
-          },
-        ]);
-        // Don't throw error here - auth metadata is already saved
+      if (!response.success) {
+        throw new Error(response.message || "Cập nhật thất bại");
       }
 
       setProfile(editedProfile);
@@ -362,13 +323,10 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps) {
           style={styles.logoutButton}
           onPress={async () => {
             try {
-              const { error } = await supabase.auth.signOut();
-              if (error) {
-                Alert.alert("Lỗi", "Không thể đăng xuất");
-              } else {
-                onNavigate("login");
-              }
-            } catch {
+              await authService.logout();
+              onNavigate("login");
+            } catch (error) {
+              console.error("Logout error:", error);
               Alert.alert("Lỗi", "Có lỗi xảy ra");
             }
           }}

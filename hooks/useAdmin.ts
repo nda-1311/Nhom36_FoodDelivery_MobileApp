@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase/client";
+import { authService } from "@/lib/api/auth";
 import { useEffect, useState } from "react";
 
 export interface AdminInfo {
@@ -21,11 +21,12 @@ export function useAdmin() {
 
     const checkAdminStatus = async () => {
       try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
+        // Check if user is logged in by checking for token
+        const isAuthenticated = await authService.isAuthenticated();
+        console.log("🔐 useAdmin - isAuthenticated:", isAuthenticated);
 
-        if (!user || !mounted) {
+        if (!isAuthenticated || !mounted) {
+          console.log("❌ useAdmin - Not authenticated");
           setAdminInfo({
             isAdmin: false,
             role: "user",
@@ -35,14 +36,13 @@ export function useAdmin() {
           return;
         }
 
-        // Check admin_config table
-        const { data: adminData, error } = await supabase
-          .from("admin_config")
-          .select("role, permissions")
-          .eq("user_id", user.id)
-          .single();
+        // Get current user profile from backend API
+        console.log("📡 useAdmin - Fetching user profile...");
+        const response = await authService.getCurrentUser();
+        console.log("📡 useAdmin - Response:", response);
 
-        if (error || !adminData) {
+        if (!response.success || !response.data || !mounted) {
+          console.log("❌ useAdmin - Failed to get user data");
           if (mounted) {
             setAdminInfo({
               isAdmin: false,
@@ -54,11 +54,24 @@ export function useAdmin() {
           return;
         }
 
+        const user = response.data;
+        const userRole = user.role?.toLowerCase();
+        console.log("👤 useAdmin - User role:", userRole);
+
+        // Check if user has admin role
+        const isAdmin =
+          userRole === "admin" ||
+          userRole === "super_admin" ||
+          userRole === "moderator";
+        console.log("✅ useAdmin - Is admin?", isAdmin);
+
         if (mounted) {
           setAdminInfo({
-            isAdmin: true,
-            role: adminData.role as "admin" | "super_admin" | "moderator",
-            permissions: adminData.permissions || [],
+            isAdmin,
+            role: isAdmin
+              ? (userRole as "admin" | "super_admin" | "moderator")
+              : "user",
+            permissions: isAdmin ? ["*"] : [], // Give all permissions to admin
             loading: false,
           });
         }
@@ -77,14 +90,12 @@ export function useAdmin() {
 
     checkAdminStatus();
 
-    // Listen to auth changes
-    const { data: subscription } = supabase.auth.onAuthStateChange(() => {
-      checkAdminStatus();
-    });
+    // Re-check every 30 seconds to catch token changes
+    const interval = setInterval(checkAdminStatus, 30000);
 
     return () => {
       mounted = false;
-      subscription?.subscription?.unsubscribe();
+      clearInterval(interval);
     };
   }, []);
 

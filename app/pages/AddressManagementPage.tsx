@@ -1,5 +1,5 @@
 import { COLORS, RADIUS, SHADOWS, SPACING } from "@/constants/design";
-import { supabase } from "@/lib/supabase/client";
+import { addressService } from "@/lib/api/addresses";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   Briefcase,
@@ -63,27 +63,29 @@ export default function AddressManagementPage({
   const loadAddresses = async () => {
     try {
       setLoading(true);
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const response = await addressService.getAddresses();
 
-      if (!user) {
-        Alert.alert("Lỗi", "Bạn cần đăng nhập để xem địa chỉ");
-        return;
+      if (response.success && response.data) {
+        // Map API response to local interface
+        const mappedAddresses = response.data.map((addr: any) => ({
+          id: addr.id,
+          user_id: addr.userId,
+          label: addr.label || "home",
+          full_address: addr.fullAddress,
+          recipient_name: addr.label || "",
+          recipient_phone: "",
+          is_default: addr.isDefault,
+          latitude: addr.latitude,
+          longitude: addr.longitude,
+          created_at: addr.createdAt,
+        }));
+        setAddresses(mappedAddresses);
+      } else {
+        throw new Error(response.message || "Failed to load addresses");
       }
-
-      const { data, error } = await supabase
-        .from("addresses")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("is_default", { ascending: false })
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setAddresses(data || []);
     } catch (error: any) {
       console.error("Error loading addresses:", error);
-      Alert.alert("Lỗi", "Không thể tải danh sách địa chỉ");
+      Alert.alert("Lỗi", error.message || "Không thể tải danh sách địa chỉ");
     } finally {
       setLoading(false);
     }
@@ -113,45 +115,36 @@ export default function AddressManagementPage({
   };
 
   const handleSaveAddress = async () => {
-    if (
-      !formData.full_address ||
-      !formData.recipient_name ||
-      !formData.recipient_phone
-    ) {
-      Alert.alert("Lỗi", "Vui lòng điền đầy đủ thông tin");
+    if (!formData.full_address) {
+      Alert.alert("Lỗi", "Vui lòng nhập địa chỉ");
       return;
     }
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not found");
-
-      // Nếu đặt làm mặc định, bỏ mặc định các địa chỉ khác
-      if (formData.is_default) {
-        await supabase
-          .from("addresses")
-          .update({ is_default: false })
-          .eq("user_id", user.id);
-      }
+      const addressData = {
+        fullAddress: formData.full_address,
+        label: formData.label,
+        isDefault: formData.is_default,
+      };
 
       if (editingAddress) {
-        // Cập nhật địa chỉ
-        const { error } = await supabase
-          .from("addresses")
-          .update(formData)
-          .eq("id", editingAddress.id);
+        // Update address
+        const response = await addressService.updateAddress(
+          editingAddress.id,
+          addressData
+        );
+        if (!response.success) throw new Error(response.message);
 
-        if (error) throw error;
+        // If setting as default, update via API
+        if (formData.is_default && !editingAddress.is_default) {
+          await addressService.setDefaultAddress(editingAddress.id);
+        }
+
         Alert.alert("Thành công", "Đã cập nhật địa chỉ");
       } else {
-        // Thêm địa chỉ mới
-        const { error } = await supabase
-          .from("addresses")
-          .insert([{ ...formData, user_id: user.id }]);
-
-        if (error) throw error;
+        // Create new address
+        const response = await addressService.createAddress(addressData);
+        if (!response.success) throw new Error(response.message);
         Alert.alert("Thành công", "Đã thêm địa chỉ mới");
       }
 
@@ -159,7 +152,7 @@ export default function AddressManagementPage({
       loadAddresses();
     } catch (error: any) {
       console.error("Error saving address:", error);
-      Alert.alert("Lỗi", "Không thể lưu địa chỉ");
+      Alert.alert("Lỗi", error.message || "Không thể lưu địa chỉ");
     }
   };
 
@@ -171,17 +164,13 @@ export default function AddressManagementPage({
         style: "destructive",
         onPress: async () => {
           try {
-            const { error } = await supabase
-              .from("addresses")
-              .delete()
-              .eq("id", address.id);
-
-            if (error) throw error;
+            const response = await addressService.deleteAddress(address.id);
+            if (!response.success) throw new Error(response.message);
             Alert.alert("Thành công", "Đã xóa địa chỉ");
             loadAddresses();
           } catch (error: any) {
             console.error("Error deleting address:", error);
-            Alert.alert("Lỗi", "Không thể xóa địa chỉ");
+            Alert.alert("Lỗi", error.message || "Không thể xóa địa chỉ");
           }
         },
       },
@@ -190,28 +179,12 @@ export default function AddressManagementPage({
 
   const handleSetDefault = async (address: Address) => {
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not found");
-
-      // Bỏ mặc định tất cả
-      await supabase
-        .from("addresses")
-        .update({ is_default: false })
-        .eq("user_id", user.id);
-
-      // Đặt mặc định cho địa chỉ được chọn
-      const { error } = await supabase
-        .from("addresses")
-        .update({ is_default: true })
-        .eq("id", address.id);
-
-      if (error) throw error;
+      const response = await addressService.setDefaultAddress(address.id);
+      if (!response.success) throw new Error(response.message);
       loadAddresses();
     } catch (error: any) {
       console.error("Error setting default:", error);
-      Alert.alert("Lỗi", "Không thể đặt địa chỉ mặc định");
+      Alert.alert("Lỗi", error.message || "Không thể đặt địa chỉ mặc định");
     }
   };
 

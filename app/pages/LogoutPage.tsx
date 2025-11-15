@@ -7,7 +7,7 @@ import {
   Alert,
   SafeAreaView,
 } from "react-native";
-import { supabase } from "@/lib/supabase/client";
+import { authService } from "@/lib/api";
 import { LogOut } from "lucide-react-native";
 
 interface LogoutPageProps {
@@ -16,12 +16,19 @@ interface LogoutPageProps {
 
 export default function LogoutPage({ onNavigate }: LogoutPageProps) {
   async function handleLogout() {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      Alert.alert("Lỗi", "❌ Lỗi khi đăng xuất: " + error.message);
-    } else {
+    try {
+      await authService.logout();
+
+      // Dispatch auth changed event
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("auth:changed"));
+      }
+
       Alert.alert("Thành công", "✅ Đăng xuất thành công!");
       onNavigate("login");
+    } catch (error) {
+      console.error("Logout error:", error);
+      Alert.alert("Lỗi", "❌ Lỗi khi đăng xuất. Vui lòng thử lại!");
     }
   }
 

@@ -1,60 +1,53 @@
 "use client";
 
-import { getCartKey } from "@/lib/cartKey";
-import { supabase } from "@/lib/supabase/client";
+import { cartService } from "@/lib/api";
+import { apiClient } from "@/lib/api/client";
 import { useCallback, useEffect, useState } from "react";
 
 export function useCartCount() {
-  const [cartKey, setCartKey] = useState<string>("");
   const [count, setCount] = useState<number>(0);
-
-  const calcCount = useCallback((rows: { quantity?: number }[]) => {
-    setCount(rows.reduce((s, r) => s + (Number(r.quantity) || 0), 0));
-  }, []);
+  const [loading, setLoading] = useState(false);
 
   const refresh = useCallback(async () => {
-    if (!cartKey) return;
-    const { data, error } = await supabase
-      .from("cart_items")
-      .select("quantity")
-      .eq("cart_key", cartKey);
-    if (!error && data) calcCount(data);
-  }, [cartKey, calcCount]);
+    // Check if user is authenticated before calling API
+    const token = await apiClient.getAccessToken();
+    if (!token) {
+      setCount(0);
+      return;
+    }
 
-  useEffect(() => {
-    (async () => setCartKey(await getCartKey()))();
+    setLoading(true);
+    try {
+      const response = await cartService.getCart();
+      if (response.success && response.data) {
+        const total = response.data.items.reduce(
+          (sum, item) => sum + item.quantity,
+          0
+        );
+        setCount(total);
+      } else {
+        setCount(0);
+      }
+    } catch (error) {
+      console.error("Error fetching cart count:", error);
+      setCount(0);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    if (!cartKey) return;
-
-    // lần đầu
     refresh();
 
-    // realtime
-    const channel = supabase
-      .channel(`cart-count:${cartKey}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "cart_items",
-          filter: `cart_key=eq.${cartKey}`,
-        },
-        () => refresh()
-      )
-      .subscribe();
+    // Listen to custom events for immediate updates after add/remove
+    const onCartChanged = () => refresh();
+    if (typeof window !== "undefined") {
+      window.addEventListener("cart:changed", onCartChanged);
+      return () => {
+        window.removeEventListener("cart:changed", onCartChanged);
+      };
+    }
+  }, [refresh]);
 
-    // nghe event nội bộ để cập nhật tức thì sau khi add trong client
-    const onBump = () => refresh();
-    window.addEventListener("cart:changed", onBump);
-
-    return () => {
-      supabase.removeChannel(channel);
-      window.removeEventListener("cart:changed", onBump);
-    };
-  }, [cartKey, refresh]);
-
-  return { cartCount: count, refreshCartCount: refresh };
+  return { cartCount: count, refreshCartCount: refresh, loading };
 }

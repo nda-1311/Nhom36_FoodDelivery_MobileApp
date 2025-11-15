@@ -1,4 +1,6 @@
-import { supabase } from "@/lib/supabase/client";
+import { reviewService } from "@/lib/api/reviews";
+import { orderService } from "@/lib/api/orders";
+import { authService } from "@/lib/api/auth";
 import { Check, ChevronLeft, Star, Upload } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
@@ -39,54 +41,33 @@ export default function RatingPage({ onNavigate, data }: RatingPageProps) {
 
   useEffect(() => {
     const init = async () => {
-      // Get user
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setUserId(user?.id || null);
+      try {
+        // Get user
+        const userResponse = await authService.getCurrentUser();
+        if (userResponse.success && userResponse.data) {
+          setUserId(userResponse.data.id);
+        }
 
-      if (!data?.orderId) {
-        Alert.alert("Lỗi", "Không tìm thấy thông tin đơn hàng");
+        if (!data?.orderId) {
+          Alert.alert("Lỗi", "Không tìm thấy thông tin đơn hàng");
+          setLoading(false);
+          return;
+        }
+
+        // Fetch order info
+        const orderResponse = await orderService.getOrderById(data.orderId);
+        if (orderResponse.success && orderResponse.data) {
+          setOrder(orderResponse.data);
+        }
+
+        // Check if rating already exists - try to get reviews for this order
+        // Note: Backend might not have a direct endpoint for this,
+        // so we'll check after submission or skip pre-loading existing review
         setLoading(false);
-        return;
+      } catch (error) {
+        console.error("Error initializing:", error);
+        setLoading(false);
       }
-
-      // Fetch order info
-      const { data: orderData, error: orderError } = await supabase
-        .from("orders")
-        .select(
-          `
-          *,
-          restaurant:restaurants(id, name),
-          delivery_assignment:delivery_assignments(
-            driver:drivers(id, name)
-          )
-        `
-        )
-        .eq("id", data.orderId)
-        .single();
-
-      if (orderError) {
-        console.error("Error fetching order:", orderError);
-      } else {
-        setOrder(orderData);
-      }
-
-      // Check if rating already exists
-      const { data: ratingData, error: ratingError } = await supabase
-        .from("reviews")
-        .select("*")
-        .eq("order_id", data.orderId)
-        .maybeSingle();
-
-      if (!ratingError && ratingData) {
-        setExistingRating(ratingData);
-        setFoodRating(ratingData.rating || 0);
-        setFoodFeedback(ratingData.comment || "");
-        setSelectedTags(ratingData.tags || []);
-      }
-
-      setLoading(false);
     };
 
     init();
@@ -127,27 +108,27 @@ export default function RatingPage({ onNavigate, data }: RatingPageProps) {
     setSaving(true);
 
     try {
-      const ratingData = {
-        order_id: data.orderId,
-        user_id: userId,
+      if (!order || !order.restaurantId) {
+        Alert.alert("Lỗi", "Không tìm thấy thông tin nhà hàng");
+        return;
+      }
+
+      const reviewData = {
+        orderId: data.orderId,
+        restaurantId: order.restaurantId,
         rating: foodRating,
-        comment: foodFeedback || null,
-        tags: selectedTags.length > 0 ? selectedTags : null,
+        comment: foodFeedback || undefined,
       };
 
-      if (existingRating) {
-        // Update existing rating
-        const { error } = await supabase
-          .from("reviews")
-          .update(ratingData)
-          .eq("id", existingRating.id);
+      const response = existingRating
+        ? await reviewService.updateReview(existingRating.id, {
+            rating: foodRating,
+            comment: foodFeedback || undefined,
+          })
+        : await reviewService.createReview(reviewData);
 
-        if (error) throw error;
-      } else {
-        // Insert new rating
-        const { error } = await supabase.from("reviews").insert([ratingData]);
-
-        if (error) throw error;
+      if (!response.success) {
+        throw new Error(response.message || "Failed to save review");
       }
 
       setSubmitted(true);
@@ -156,7 +137,10 @@ export default function RatingPage({ onNavigate, data }: RatingPageProps) {
       }, 2000);
     } catch (error: any) {
       console.error("Error saving rating:", error);
-      Alert.alert("Lỗi", "Không thể lưu đánh giá. Vui lòng thử lại!");
+      Alert.alert(
+        "Lỗi",
+        error.message || "Không thể lưu đánh giá. Vui lòng thử lại!"
+      );
     } finally {
       setSaving(false);
     }

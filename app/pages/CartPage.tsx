@@ -1,7 +1,7 @@
 import { COLORS, RADIUS, SHADOWS } from "@/constants/design";
-import { getCartKey } from "@/lib/cartKey";
-import { supabase } from "@/lib/supabase/client";
+import { apiClient } from "@/lib/api/client";
 import { useCart } from "@/store/cart-context";
+import { getFoodImage } from "@/utils/foodImageMap";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   MapPin,
@@ -11,7 +11,7 @@ import {
   Tag,
   Trash2,
 } from "lucide-react-native";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -23,19 +23,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-// 🖼️ Map ảnh tĩnh
-const IMAGE_MAP: Record<string, any> = {
-  "/com-tam-suon-bi-cha.jpg": require("@/assets/public/com-tam-suon-bi-cha.jpg"),
-  "/classic-beef-burger.png": require("@/assets/public/classic-beef-burger.png"),
-  "/comga_xoimo.jpg": require("@/assets/public/comga_xoimo.jpg"),
-  "/buncha_hanoi.jpg": require("@/assets/public/buncha_hanoi.jpg"),
-  "/milk-drink.jpg": require("@/assets/public/milk-drink.jpg"),
-  "/trasuamatcha_master.png": require("@/assets/public/trasuamatcha_master.png"),
-  "/colorful-fruit-smoothie.png": require("@/assets/public/colorful-fruit-smoothie.png"),
-  "/pizza-xuc-xich-pho-mai-vuong.jpg": require("@/assets/public/pizza-xuc-xich-pho-mai-vuong.jpg"),
-  "/creamy-chicken-salad.png": require("@/assets/public/creamy-chicken-salad.png"),
-};
 
 interface CartPageProps {
   onNavigate?: (page: string, data?: any) => void;
@@ -58,78 +45,84 @@ type CartRow = {
 export default function CartPage({ onNavigate = () => {} }: CartPageProps) {
   const { syncFromServer, setCartCount } = useCart(); // ✅ đồng bộ & badge toàn app
 
-  const [cartKey, setCartKey] = useState<string>("");
   const [items, setItems] = useState<CartRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Lấy cart key 1 lần
-  useEffect(() => {
-    (async () => {
-      const key = await getCartKey();
-      setCartKey(key);
-    })();
-  }, []);
-
   // ✅ Load giỏ hàng + cập nhật context
-  const reloadCart = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("cart_items")
-      .select("*")
-      .eq("cart_key", cartKey)
-      .order("created_at", { ascending: true });
+  const reloadCart = async () => {
+    try {
+      const result = await apiClient.get("/cart");
 
-    if (!error && data) {
-      setItems(data as CartRow[]);
+      if (result.success && result.data) {
+        const cartData = result.data.items || [];
 
-      // 🔹 Đồng bộ vào context (cho realtime toàn app)
-      syncFromServer(
-        data.map((d) => ({
-          id: d.food_item_id,
-          name: d.name,
-          price: d.price,
-          qty: d.quantity,
-          image: d.image ?? undefined,
-          meta: d.meta,
-        }))
-      );
+        // ✅ Map đúng cấu trúc dữ liệu từ backend
+        const mappedItems = cartData.map((item: any) => ({
+          id: item.id, // ID của CartItem
+          cart_key: item.cartId,
+          food_item_id: item.menuItemId,
+          name: item.menuItem?.name || "Unknown",
+          price: item.menuItem?.price || 0,
+          quantity: item.quantity,
+          image: item.menuItem?.image,
+          meta: item.specialInstructions
+            ? { note: item.specialInstructions }
+            : undefined,
+          restaurant: item.menuItem?.restaurant?.name,
+          created_at: item.createdAt,
+          updated_at: item.updatedAt,
+        }));
 
-      // 🔹 Cập nhật badge ngay lập tức (tổng quantity)
-      const totalQty = data.reduce((sum, d) => sum + (d.quantity || 0), 0);
-      setCartCount(totalQty);
-    }
-  }, [cartKey, syncFromServer, setCartCount]);
+        setItems(mappedItems);
 
-  // ✅ Lần đầu tải giỏ hàng + realtime
-  useEffect(() => {
-    if (!cartKey) return;
-    setLoading(true);
+        // 🔹 Đồng bộ vào context (cho realtime toàn app)
+        syncFromServer(
+          mappedItems.map((d: any) => ({
+            id: d.food_item_id,
+            name: d.name,
+            price: d.price,
+            qty: d.quantity,
+            image: d.image,
+            meta: d.meta,
+          }))
+        );
 
-    (async () => {
-      await reloadCart();
-      setLoading(false);
-    })();
+        // 🔹 Cập nhật badge ngay lập tức (tổng quantity)
+        const totalQty = cartData.reduce(
+          (sum: number, d: any) => sum + (d.quantity || 0),
+          0
+        );
+        setCartCount(totalQty);
 
-    // ✅ Lắng nghe realtime Supabase (thiết bị khác)
-    const channel = supabase
-      .channel(`cart:${cartKey}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "cart_items",
-          filter: `cart_key=eq.${cartKey}`,
-        },
-        async () => {
-          await reloadCart();
+        // 🔹 Dispatch event để thông báo giỏ hàng đã thay đổi
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("cart:changed"));
         }
-      )
-      .subscribe();
+      }
+    } catch (error) {
+      console.error("Failed to reload cart:", error);
+    }
+  };
+
+  // ✅ Load cart khi mount - chỉ chạy 1 lần
+  useEffect(() => {
+    let mounted = true;
+
+    const loadCart = async () => {
+      setLoading(true);
+      await reloadCart();
+      if (mounted) {
+        setLoading(false);
+      }
+    };
+
+    loadCart();
 
     return () => {
-      supabase.removeChannel(channel);
+      mounted = false;
     };
-  }, [cartKey, reloadCart]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Chỉ chạy 1 lần khi component mount
 
   // ================== TÍNH TOÁN ==================
   const totalQty = useMemo(
@@ -159,16 +152,17 @@ export default function CartPage({ onNavigate = () => {} }: CartPageProps) {
 
     optimisticSet(id, { quantity: nextQty });
 
-    const { error } = await supabase
-      .from("cart_items")
-      .update({ quantity: nextQty })
-      .eq("id", id);
+    try {
+      const result = await apiClient.put(`/cart/${id}`, { quantity: nextQty });
+      if (!result.success) {
+        throw new Error(result.message);
+      }
 
-    if (error) {
-      console.error("Update quantity failed:", error);
+      await reloadCart(); // ✅ đồng bộ với backend
+    } catch (error: any) {
+      console.error("❌ Update quantity failed:", error);
       Alert.alert("Lỗi", "Không thể cập nhật số lượng!");
-    } else {
-      await reloadCart(); // ✅ đồng bộ realtime context
+      await reloadCart(); // Rollback
     }
   };
 
@@ -186,35 +180,40 @@ export default function CartPage({ onNavigate = () => {} }: CartPageProps) {
     const prev = items;
     setItems((p) => p.filter((i) => i.id !== id));
 
-    const { error } = await supabase.from("cart_items").delete().eq("id", id);
-    if (error) {
-      console.error("Remove failed:", error);
+    try {
+      const result = await apiClient.delete(`/cart/${id}`);
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+
+      await reloadCart(); // ✅ cập nhật context + badge
+    } catch (error: any) {
+      console.error("❌ Remove failed:", error);
       Alert.alert("Lỗi", "Không thể xoá món. Đang khôi phục lại.");
       setItems(prev);
-    } else {
-      await reloadCart(); // ✅ cập nhật context + badge
     }
   };
 
   const clearCart = async () => {
     const prev = items;
     setItems([]);
-    const { error } = await supabase
-      .from("cart_items")
-      .delete()
-      .eq("cart_key", cartKey);
 
-    if (error) {
-      console.error("Clear failed:", error);
+    try {
+      const result = await apiClient.delete("/cart");
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+
+      await reloadCart(); // ✅ cập nhật toàn app
+    } catch (error: any) {
+      console.error("❌ Clear failed:", error);
       Alert.alert("Lỗi", "Không thể xoá toàn bộ giỏ hàng. Đang khôi phục lại.");
       setItems(prev);
-    } else {
-      await reloadCart(); // ✅ cập nhật toàn app
     }
   };
 
   // ================== UI ==================
-  if (!cartKey || loading) {
+  if (loading) {
     return (
       <View style={styles.centerWrapper}>
         <ActivityIndicator size="large" color={COLORS.primary} />
@@ -288,11 +287,7 @@ export default function CartPage({ onNavigate = () => {} }: CartPageProps) {
         {items.map((item) => (
           <View key={item.id} style={styles.cartItem}>
             <Image
-              source={
-                item.image && IMAGE_MAP[item.image]
-                  ? IMAGE_MAP[item.image]
-                  : require("@/assets/public/placeholder.jpg")
-              }
+              source={getFoodImage(item.name, item.image || undefined)}
               style={styles.itemImage}
             />
             <View style={styles.itemContent}>

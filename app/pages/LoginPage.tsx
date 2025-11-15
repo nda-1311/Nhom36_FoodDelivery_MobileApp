@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase/client";
+import { authService } from "@/lib/api/auth";
 import { LoginPageProps } from "@/types/auth";
 import { validateLoginForm } from "@/utils/validation";
 import React, { useState } from "react";
@@ -35,85 +35,60 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
     if (!validate()) return;
 
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
 
-    if (error) {
-      let message = error.message;
-      if (message.includes("Invalid login credentials"))
+    try {
+      // Call backend login API
+      const response = await authService.login({ email, password });
+
+      if (!response.success || !response.data) {
+        setLoginError(response.message || "Đăng nhập thất bại!");
+        setLoading(false);
+        return;
+      }
+
+      const user = response.data.user;
+      console.log("Logged in user:", user);
+
+      // Check admin role
+      const isActuallyAdmin = [
+        "ADMIN",
+        "SUPER_ADMIN",
+        "RESTAURANT_OWNER",
+      ].includes(user.role);
+
+      // If user selected admin login
+      if (loginAsAdmin) {
+        if (isActuallyAdmin) {
+          console.log("✅ Admin login detected, role:", user.role);
+          setLoading(false);
+          onNavigate("admin-dashboard");
+          return;
+        } else {
+          console.log("❌ User has no admin rights");
+          setLoginError("Tài khoản này không có quyền Admin!");
+          setLoading(false);
+          await authService.logout();
+          return;
+        }
+      } else {
+        // Regular user login
+        console.log("Regular user login");
+        setLoading(false);
+        onNavigate("home");
+        return;
+      }
+    } catch (error: any) {
+      console.error("Login error:", error);
+      let message = error.message || "Đăng nhập thất bại!";
+      if (
+        message.includes("Invalid credentials") ||
+        message.includes("Invalid login")
+      ) {
         message = "Sai email hoặc mật khẩu. Vui lòng thử lại!";
-      else if (message.includes("Email not confirmed"))
-        message = "Tài khoản chưa được xác minh qua email.";
-
+      }
       setLoginError(message);
       setLoading(false);
-      return;
     }
-
-    // ✅ Kiểm tra quyền admin sau khi đăng nhập thành công
-    if (data?.user) {
-      try {
-        console.log("Checking admin status for user:", data.user.id);
-
-        const { data: adminData, error: adminError } = await supabase
-          .from("admin_config")
-          .select("role")
-          .eq("user_id", data.user.id)
-          .maybeSingle();
-
-        console.log("Admin check result:", { adminData, adminError });
-
-        const isActuallyAdmin =
-          !adminError &&
-          adminData &&
-          ["admin", "super_admin", "moderator"].includes(adminData.role);
-
-        console.log(
-          "Is actually admin:",
-          isActuallyAdmin,
-          "Role:",
-          adminData?.role
-        );
-
-        // Nếu user chọn đăng nhập với quyền admin
-        if (loginAsAdmin) {
-          if (isActuallyAdmin) {
-            console.log("✅ Admin login detected, role:", adminData.role);
-            setLoading(false);
-            onNavigate("admin-dashboard");
-            return;
-          } else {
-            // User không có quyền admin nhưng chọn checkbox admin
-            console.log("❌ User has no admin rights");
-            setLoginError("Tài khoản này không có quyền Admin!");
-            setLoading(false);
-            await supabase.auth.signOut(); // Đăng xuất luôn
-            return;
-          }
-        } else {
-          // User không chọn checkbox admin → luôn vào trang home
-          console.log("Regular user login");
-          setLoading(false);
-          onNavigate("home");
-          return;
-        }
-      } catch (err) {
-        console.log("Admin check failed:", err);
-        if (loginAsAdmin) {
-          setLoginError("Không thể xác minh quyền Admin!");
-          setLoading(false);
-          await supabase.auth.signOut();
-          return;
-        }
-      }
-    }
-
-    // Fallback: User thường
-    console.log("Regular user login (fallback)");
-    setLoading(false);
-    onNavigate("home");
   };
 
   return (

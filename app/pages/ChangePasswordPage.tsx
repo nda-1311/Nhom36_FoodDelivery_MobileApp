@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase/client";
+import { authService } from "@/lib/api/auth";
 import { Check, ChevronLeft, Eye, EyeOff, Lock } from "lucide-react-native";
 import React, { useState } from "react";
 import {
@@ -83,56 +83,36 @@ export default function ChangePasswordPage({
     setLoading(true);
 
     try {
-      // Verify current password by attempting to sign in
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user?.email) {
-        throw new Error("Không tìm thấy thông tin người dùng");
-      }
-
-      // Try to sign in with current password to verify it
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password: currentPassword,
+      const response = await authService.changePassword({
+        oldPassword: currentPassword,
+        newPassword: newPassword,
       });
 
-      if (signInError) {
-        setToastMessage("Mật khẩu hiện tại không đúng");
+      if (!response.success) {
+        const message = response.message || "Không thể đổi mật khẩu";
+
+        if (message.includes("incorrect") || message.includes("sai")) {
+          setToastMessage("Mật khẩu hiện tại không đúng");
+        } else {
+          setToastMessage(message);
+        }
         setToastType("error");
         setShowToast(true);
-        setLoading(false);
         return;
-      }
-
-      // Update password
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-
-      if (updateError) {
-        throw updateError;
       }
 
       setSuccess(true);
       setToastMessage("Mật khẩu đã được thay đổi thành công! 🎉");
       setToastType("success");
       setShowToast(true);
-      
+
       setTimeout(() => {
         onNavigate("profile");
       }, 2000);
     } catch (error: any) {
       console.error("Error changing password:", error);
-      let message = "Không thể đổi mật khẩu. Vui lòng thử lại!";
-
-      if (error.message?.includes("New password should be different")) {
-        message = "Mật khẩu mới phải khác mật khẩu cũ";
-      } else if (error.message?.includes("Password should be at least")) {
-        message = "Mật khẩu phải có ít nhất 6 ký tự";
-      }
-
+      const message =
+        error.message || "Không thể đổi mật khẩu. Vui lòng thử lại!";
       setToastMessage(message);
       setToastType("error");
       setShowToast(true);

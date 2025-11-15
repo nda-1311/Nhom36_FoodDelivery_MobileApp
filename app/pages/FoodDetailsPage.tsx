@@ -6,9 +6,9 @@ import {
   TYPOGRAPHY,
 } from "@/constants/design";
 import { useFavorites } from "@/hooks/useFavorites";
-import { getCartKey } from "@/lib/cartKey";
-import { supabase } from "@/lib/supabase/client";
+import { apiClient } from "@/lib/api/client";
 import { useCart } from "@/store/cart-context";
+import { getFoodImage } from "@/utils/foodImageMap";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   ChevronLeft,
@@ -30,19 +30,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-// Map ảnh static
-const IMAGE_MAP: Record<string, any> = {
-  "/com-tam-suon-bi-cha.jpg": require("@/assets/public/com-tam-suon-bi-cha.jpg"),
-  "/classic-beef-burger.png": require("@/assets/public/classic-beef-burger.png"),
-  "/comga_xoimo.jpg": require("@/assets/public/comga_xoimo.jpg"),
-  "/buncha_hanoi.jpg": require("@/assets/public/buncha_hanoi.jpg"),
-  "/milk-drink.jpg": require("@/assets/public/milk-drink.jpg"),
-  "/trasuamatcha_master.png": require("@/assets/public/trasuamatcha_master.png"),
-  "/colorful-fruit-smoothie.png": require("@/assets/public/colorful-fruit-smoothie.png"),
-  "/pizza-xuc-xich-pho-mai-vuong.jpg": require("@/assets/public/pizza-xuc-xich-pho-mai-vuong.jpg"),
-  "/creamy-chicken-salad.png": require("@/assets/public/creamy-chicken-salad.png"),
-};
 
 interface FoodDetailsPageProps {
   data: any;
@@ -68,24 +55,27 @@ export default function FoodDetailsPage({
 
   const { addItem } = useCart();
   const { isFav, toggle, loading: favLoading } = useFavorites();
-  const isFavorite = data?.id ? isFav(String(data.id)) : false;
+
+  // ✅ Sử dụng useMemo để tính lại khi isFav thay đổi
+  const isFavorite = React.useMemo(() => {
+    if (!data?.id) return false;
+    const result = isFav(String(data.id));
+    console.log(
+      "FoodDetailsPage - isFavorite:",
+      result,
+      "for foodId:",
+      data.id
+    );
+    return result;
+  }, [data?.id, isFav]);
 
   const displayName = data?.name || "Món ăn";
   const displayDesc =
     data?.description || "Món ăn ngon được chuẩn bị tươi mới!";
   const basePrice = Math.round(Number(data?.price) || 10000);
 
-  // Xử lý ảnh
-  let imageSource = { uri: "https://placehold.co/400x300" };
-  if (data?.image_url && IMAGE_MAP[data.image_url]) {
-    imageSource = IMAGE_MAP[data.image_url];
-  } else if (data?.image && IMAGE_MAP[data.image]) {
-    imageSource = IMAGE_MAP[data.image];
-  } else if (data?.image_url) {
-    imageSource = { uri: data.image_url };
-  } else if (data?.image) {
-    imageSource = { uri: data.image };
-  }
+  // Xử lý ảnh - dùng getFoodImage utility
+  const imageSource = getFoodImage(displayName, data?.image || data?.image_url);
 
   const toggleTopping = (topping: string) => {
     setToppings((prev) =>
@@ -107,47 +97,28 @@ export default function FoodDetailsPage({
   // ✅ Sửa lỗi không tăng count
   const handleAddToCart = async () => {
     try {
-      const cart_key = await getCartKey();
       const price = basePrice + priceSize + priceToppings;
 
-      const { data: existing } = await supabase
-        .from("cart_items")
-        .select("id, quantity")
-        .eq("cart_key", cart_key)
-        .eq("food_item_id", String(data.id))
-        .maybeSingle();
+      // Build special instructions from selections
+      const instructions = [];
+      if (selectedSize !== "S") instructions.push(`Size: ${selectedSize}`);
+      if (selectedSpiciness !== "Mild")
+        instructions.push(`Spiciness: ${selectedSpiciness}`);
+      if (toppings.length > 0)
+        instructions.push(`Toppings: ${toppings.join(", ")}`);
+      if (note) instructions.push(`Note: ${note}`);
 
-      if (existing) {
-        // ✅ Nếu đã có, thì update số lượng
-        const { error: updateError } = await supabase
-          .from("cart_items")
-          .update({ quantity: existing.quantity + quantity })
-          .eq("id", existing.id);
+      const specialInstructions = instructions.join(" | ");
 
-        if (updateError) throw updateError;
-      } else {
-        // ✅ Nếu chưa có, insert mới
-        const row = {
-          cart_key,
-          food_item_id: String(data.id),
-          name: displayName,
-          price,
-          quantity,
-          image: data.image_url || data.image || "https://placehold.co/200x200",
-          restaurant_id: data.restaurant_id || null,
-          restaurant: data.restaurant || null,
-          meta: {
-            size: selectedSize,
-            spiciness: selectedSpiciness,
-            toppings,
-            note,
-          },
-        };
+      // Call backend API to add to cart
+      const result = await apiClient.post("/cart", {
+        menuItemId: String(data.id),
+        quantity: quantity,
+        specialInstructions: specialInstructions || undefined,
+      });
 
-        const { error: insertError } = await supabase
-          .from("cart_items")
-          .insert([row]);
-        if (insertError) throw insertError;
+      if (!result.success) {
+        throw new Error(result.message || "Failed to add to cart");
       }
 
       // ✅ Cập nhật Context (hiển thị ngay)
@@ -169,8 +140,8 @@ export default function FoodDetailsPage({
       Alert.alert("🎉 Thành công", "Đã thêm món vào giỏ hàng!");
       onNavigate("cart");
     } catch (err: any) {
-      console.error(err);
-      Alert.alert("Lỗi", "Không thể thêm vào giỏ hàng!");
+      console.error("❌ Add to cart error:", err);
+      Alert.alert("Lỗi", err.message || "Không thể thêm vào giỏ hàng!");
     }
   };
 

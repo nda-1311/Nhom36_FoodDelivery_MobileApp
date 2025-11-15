@@ -1,67 +1,31 @@
-// hooks/useFavorites.ts
-"use client";
-import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/lib/supabase/client";
-import { useAnonUser } from "./useAnonUser";
+﻿"use client";
 
-type FavRow = {
-  id?: string; // nếu có PK id
-  user_id?: string;
-  food_item_id: string;
-  food_name?: string;
-  food_image?: string;
-  price?: number;
-  created_at?: string;
-};
+import { useEffect, useState } from "react";
+import { favoriteService } from "@/lib/api";
 
-export function useFavorites() {
-  const { userId, loading: loadingUser } = useAnonUser();
-  const [items, setItems] = useState<FavRow[]>([]);
+export function useIsFavorite(menuItemId?: string) {
+  const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const refresh = useCallback(async () => {
-    if (!userId) return;
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("favorites")
-      .select(
-        "id, user_id, food_item_id, food_name, food_image, price, created_at"
-      )
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false });
-    if (error) console.error(error);
-    setItems(data ?? []);
-    setLoading(false);
-  }, [userId]);
-
   useEffect(() => {
-    if (!userId || loadingUser) return;
-    // fetch lần đầu
-    refresh();
+    if (!menuItemId) return;
 
-    // ---- Realtime subscription ----
-    // Lắng nghe tất cả thay đổi trên bảng favorites của user hiện tại
-    const channel = supabase
-      .channel(`favorites-${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*", // INSERT | UPDATE | DELETE
-          schema: "public",
-          table: "favorites",
-          filter: `user_id=eq.${userId}`, // chỉ dữ liệu của user này
-        },
-        (_payload) => {
-          // đơn giản nhất: refetch
-          refresh();
+    const checkFavorite = async () => {
+      setLoading(true);
+      try {
+        const response = await favoriteService.isMenuItemFavorite(menuItemId);
+        if (response.success && response.data) {
+          setIsFavorite(response.data.isFavorite);
         }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
+      } catch (err) {
+        console.error("Check favorite error:", err);
+      } finally {
+        setLoading(false);
+      }
     };
-  }, [userId, loadingUser, refresh]);
 
-  return { items, loading: loading || loadingUser, userId, refresh };
+    checkFavorite();
+  }, [menuItemId]);
+
+  return { isFavorite, loading };
 }

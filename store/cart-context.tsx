@@ -1,6 +1,6 @@
 "use client";
-import { getCartKey } from "@/lib/cartKey";
-import { supabase } from "@/lib/supabase/client";
+import { cartService } from "@/lib/api";
+import { apiClient } from "@/lib/api/client";
 import React, {
   createContext,
   useContext,
@@ -86,49 +86,44 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, { items: [] });
   const [cartCount, setCartCount] = useState(0);
 
-  // 🧩 Hàm load lại số lượng giỏ hàng
-  const refreshCartCount = async (key: string) => {
-    const { count } = await supabase
-      .from("cart_items")
-      .select("*", { count: "exact", head: true })
-      .eq("cart_key", key);
-    setCartCount(count || 0);
+  // 🧩 Hàm load lại số lượng giỏ hàng từ backend API
+  const refreshCartCount = async () => {
+    try {
+      // Check if user is authenticated
+      const token = await apiClient.getAccessToken();
+      if (!token) {
+        setCartCount(0);
+        return;
+      }
+
+      const response = await cartService.getCart();
+      if (response.success && response.data) {
+        setCartCount(response.data.items.length);
+      } else {
+        setCartCount(0);
+      }
+    } catch (error) {
+      console.error("Error refreshing cart count:", error);
+      setCartCount(0);
+    }
   };
 
-  // ✅ Realtime toàn cục: hoạt động ở mọi trang
+  // ✅ Load cart count một lần khi mount và chỉ cập nhật khi có sự kiện
   useEffect(() => {
-    let channel: any = null;
+    // Load ban đầu
+    refreshCartCount();
 
-    const initRealtime = async () => {
-      const key = await getCartKey();
-      if (!key) return;
-
-      // Đếm ban đầu
-      await refreshCartCount(key);
-
-      // Đăng ký kênh realtime theo cart_key
-      channel = supabase
-        .channel(`cart_realtime_${key}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "cart_items",
-            filter: `cart_key=eq.${key}`,
-          },
-          async () => {
-            await refreshCartCount(key);
-          }
-        )
-        .subscribe();
-    };
-
-    initRealtime();
+    // Listen to custom events for immediate updates
+    const onCartChanged = () => refreshCartCount();
+    if (typeof window !== "undefined") {
+      window.addEventListener("cart:changed", onCartChanged);
+    }
 
     // Cleanup
     return () => {
-      if (channel) supabase.removeChannel(channel);
+      if (typeof window !== "undefined") {
+        window.removeEventListener("cart:changed", onCartChanged);
+      }
     };
   }, []);
 

@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase/client";
+import { orderService } from "@/lib/api/orders";
 import {
   ChevronLeft,
   Clock,
@@ -75,26 +75,34 @@ export default function OrderDetailPage({
 
     const fetchOrderDetail = async () => {
       try {
-        // Fetch order info (without nested relations)
-        const { data: orderData, error: orderError } = await supabase
-          .from("orders")
-          .select("*")
-          .eq("id", data.orderId)
-          .single();
+        const response = await orderService.getOrderById(data.orderId);
 
-        if (orderError) throw orderError;
+        if (!response.success || !response.data) {
+          throw new Error(response.message || "Failed to fetch order");
+        }
 
-        // Fetch order items
-        const { data: itemsData, error: itemsError } = await supabase
-          .from("order_items")
-          .select("*")
-          .eq("order_id", data.orderId);
-
-        if (itemsError) throw itemsError;
-
+        // Map API response to OrderDetail format
+        const orderData = response.data as any;
         setOrder({
-          ...orderData,
-          items: itemsData || [],
+          id: orderData.id,
+          status: orderData.status,
+          delivery_address: orderData.address?.fullAddress || "N/A",
+          delivery_time: 30,
+          subtotal: orderData.subtotal,
+          delivery_fee: orderData.deliveryFee,
+          discount: orderData.discount,
+          total: orderData.total,
+          payment_method: orderData.paymentMethod,
+          created_at: orderData.createdAt,
+          items:
+            orderData.items?.map((item: any) => ({
+              id: item.id,
+              food_item_id: item.menuItemId,
+              name: item.menuItem?.name || "Unknown",
+              quantity: item.quantity,
+              price: item.price,
+              image: item.menuItem?.image,
+            })) || [],
         } as OrderDetail);
       } catch (error: any) {
         console.error("Error fetching order detail:", error);

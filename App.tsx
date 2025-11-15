@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase/client";
+import { apiClient } from "@/lib/api";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -115,59 +115,49 @@ function AppContent() {
   // Add console log to confirm user is being tracked (suppress lint warning)
   console.log("Current user:", user?.id || "Not logged in");
 
-  // ✅ Kiểm tra đăng nhập Supabase
+  // ✅ Kiểm tra đăng nhập với Backend JWT
   useEffect(() => {
     const checkSession = async () => {
       setPage({ current: "loading" });
 
-      const { data: sessionData } = await supabase.auth.getSession();
-      const session = sessionData?.session;
+      try {
+        const token = await apiClient.getAccessToken();
 
-      console.log("Session check:", {
-        hasSession: !!session,
-        user: session?.user?.email,
-      });
+        console.log("Session check:", {
+          hasToken: !!token,
+        });
 
-      if (!session || !session.user) {
+        if (!token) {
+          setUser(null);
+          setPage({ current: "login" });
+          setAuthChecking(false);
+        } else {
+          // User is logged in, set to home
+          setUser({ id: "current_user" }); // Simplified user object
+          setPage({ current: "home" });
+          setAuthChecking(false);
+        }
+      } catch (error) {
+        console.error("Session check error:", error);
         setUser(null);
         setPage({ current: "login" });
-        setAuthChecking(false);
-      } else {
-        setUser(session.user);
-        // ✅ Khi reload app, mặc định đưa về home (user tự chọn checkbox nếu muốn vào admin)
-        setPage({ current: "home" });
         setAuthChecking(false);
       }
     };
 
     checkSession();
 
-    // 🔁 Theo dõi thay đổi trạng thái đăng nhập
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log("Auth event:", event);
-
-        // ✅ Chỉ xử lý khi đăng xuất hoặc đăng nhập mới
-        if (event === "SIGNED_OUT") {
-          setUser(null);
-          setPage({ current: "login" });
-        } else if (event === "SIGNED_IN" && session?.user) {
-          setUser(session.user);
-          // Không tự động chuyển trang - để LoginPage xử lý
-        } else if (session?.user) {
-          // Chỉ cập nhật user, không đổi page
-          setUser(session.user);
-        } else if (!session?.user && event === "TOKEN_REFRESHED") {
-          // Token refresh failed - đăng xuất
-          setUser(null);
-          setPage({ current: "login" });
-        }
-      }
-    );
-
-    return () => {
-      listener?.subscription.unsubscribe();
+    // Listen to custom auth events
+    const handleAuthChange = () => {
+      checkSession();
     };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("auth:changed", handleAuthChange);
+      return () => {
+        window.removeEventListener("auth:changed", handleAuthChange);
+      };
+    }
   }, []);
 
   // ⚙️ Điều hướng giữa các trang

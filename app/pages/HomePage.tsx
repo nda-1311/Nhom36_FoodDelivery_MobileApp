@@ -8,8 +8,8 @@ import {
   TYPOGRAPHY,
 } from "@/constants/design";
 import { useFavorites } from "@/hooks/useFavorites";
-import { supabase } from "@/lib/supabase/client";
 import { useCart } from "@/store/cart-context";
+import { getFoodImage } from "@/utils/foodImageMap";
 import { LinearGradient } from "expo-linear-gradient";
 import { Bell, ChevronDown, MapPin, Search } from "lucide-react-native";
 import React, { useEffect, useMemo, useState } from "react";
@@ -21,19 +21,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-// Map ảnh static
-const IMAGE_MAP: Record<string, any> = {
-  "/com-tam-suon-bi-cha.jpg": require("@/assets/public/com-tam-suon-bi-cha.jpg"),
-  "/classic-beef-burger.png": require("@/assets/public/classic-beef-burger.png"),
-  "/comga_xoimo.jpg": require("@/assets/public/comga_xoimo.jpg"),
-  "/buncha_hanoi.jpg": require("@/assets/public/buncha_hanoi.jpg"),
-  "/milk-drink.jpg": require("@/assets/public/milk-drink.jpg"),
-  "/trasuamatcha_master.png": require("@/assets/public/trasuamatcha_master.png"),
-  "/colorful-fruit-smoothie.png": require("@/assets/public/colorful-fruit-smoothie.png"),
-  "/pizza-xuc-xich-pho-mai-vuong.jpg": require("@/assets/public/pizza-xuc-xich-pho-mai-vuong.jpg"),
-  "/creamy-chicken-salad.png": require("@/assets/public/creamy-chicken-salad.png"),
-};
 
 interface HomePageProps {
   onNavigate?: (page: string, data?: any) => void;
@@ -74,7 +61,7 @@ export default function HomePage({
   const [refreshing, setRefreshing] = useState(false);
 
   const { cartCount } = useCart();
-  const { items: dbFavorites, toggle, isFav } = useFavorites();
+  const { items: dbFavorites, toggle } = useFavorites();
 
   // Combine external favorites with database favorites
   const allFavorites = useMemo(() => {
@@ -102,55 +89,84 @@ export default function HomePage({
   // ✅ Fetch categories & data
   useEffect(() => {
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadData = async () => {
     try {
       setLoading(true);
 
-      // Get categories
-      const { data: categoryData } = await supabase
-        .from("food_items")
-        .select("category");
+      // Use REST API instead of Supabase RPC
+      const response = await fetch("http://localhost:5000/api/v1/food");
+      const result = await response.json();
 
-      if (categoryData) {
-        const categoriesList = Array.from(
-          new Set(
-            categoryData
-              .map((r: any) => r.category?.trim().toLowerCase())
-              .filter((v: string | undefined): v is string => !!v)
-          )
-        );
-        setCategories(categoriesList as string[]);
+      console.log("📦 API response:", result);
+
+      if (!result.success) {
+        console.error("❌ API error:", result.message);
+        return;
       }
 
-      await fetchFoods();
+      const menuData = result.data;
+      if (menuData && Array.isArray(menuData)) {
+        // Transform data to match expected format
+        const transformedData = menuData.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          image_url: item.image,
+          price: item.price,
+          rating: 4.5,
+          category: item.categoryId || "fastfood",
+        }));
+
+        // Extract unique categories
+        const categoriesList = Array.from(
+          new Set(transformedData.map((item) => item.category).filter(Boolean))
+        );
+        setCategories(categoriesList as string[]);
+
+        // Set deals and foods
+        setDeals(transformedData.slice(0, DEALS_LIMIT));
+        setFoods(transformedData.slice(0, PRODUCTS_LIMIT));
+
+        console.log("✅ Loaded", transformedData.length, "food items");
+      }
     } catch (err) {
-      console.error("Load error:", err);
+      console.error("❌ Load error:", err);
     } finally {
       setLoading(false);
     }
   };
 
   const fetchFoods = async () => {
-    let baseQuery = supabase
-      .from("food_items")
-      .select("id, name, image_url, price, rating, category");
+    try {
+      // Use REST API
+      const response = await fetch("http://localhost:5000/api/v1/food");
+      const result = await response.json();
 
-    if (activeCategory !== "all")
-      baseQuery = baseQuery.eq("category", activeCategory);
+      if (result.success && result.data) {
+        const transformedData = result.data.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          image_url: item.image,
+          price: item.price,
+          rating: 4.5,
+          category: item.categoryId || "fastfood",
+        }));
 
-    const [{ data: dealsData }, { data: foodsData }] = await Promise.all([
-      baseQuery
-        .gt("rating", 4.5)
-        .order("rating", { ascending: false })
-        .limit(DEALS_LIMIT),
-      baseQuery.order("rating", { ascending: false }).limit(PRODUCTS_LIMIT),
-    ]);
+        // Filter by category if not "all"
+        const filteredData =
+          activeCategory === "all"
+            ? transformedData
+            : transformedData.filter(
+                (item: any) => item.category === activeCategory
+              );
 
-    setDeals(dealsData ?? []);
-    setFoods(foodsData ?? []);
+        setDeals(filteredData.slice(0, DEALS_LIMIT));
+        setFoods(filteredData.slice(0, PRODUCTS_LIMIT));
+      }
+    } catch (err) {
+      console.error("❌ Fetch error:", err);
+    }
   };
 
   useEffect(() => {
@@ -283,11 +299,7 @@ export default function HomePage({
                   key={item.id}
                   id={item.id}
                   name={item.name}
-                  image={
-                    item.image_url && IMAGE_MAP[item.image_url]
-                      ? IMAGE_MAP[item.image_url]
-                      : require("@/assets/public/placeholder.jpg")
-                  }
+                  image={getFoodImage(item.name)}
                   price={item.price ?? 0}
                   rating={item.rating ?? 0}
                   isFavorite={allFavorites.has(String(item.id))}
@@ -336,11 +348,7 @@ export default function HomePage({
                 key={item.id}
                 id={item.id}
                 name={item.name}
-                image={
-                  item.image_url && IMAGE_MAP[item.image_url]
-                    ? IMAGE_MAP[item.image_url]
-                    : require("@/assets/public/placeholder.jpg")
-                }
+                image={getFoodImage(item.name)}
                 price={item.price ?? 0}
                 rating={item.rating ?? 0}
                 isFavorite={allFavorites.has(String(item.id))}
