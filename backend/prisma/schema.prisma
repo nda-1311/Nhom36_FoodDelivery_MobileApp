@@ -1,0 +1,461 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER & AUTHENTICATION
+// ============================================
+
+enum UserRole {
+  CUSTOMER
+  RESTAURANT_OWNER
+  DELIVERY_DRIVER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  BANNED
+}
+
+model User {
+  id                String          @id @default(uuid())
+  email             String          @unique
+  password          String
+  phoneNumber       String?         @unique
+  fullName          String
+  avatar            String?
+  role              UserRole        @default(CUSTOMER)
+  status            UserStatus      @default(ACTIVE)
+  emailVerified     Boolean         @default(false)
+  phoneVerified     Boolean         @default(false)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  lastLoginAt       DateTime?
+
+  // Relations
+  addresses         Address[]
+  orders            Order[]
+  reviews           Review[]
+  favoriteRestaurants FavoriteRestaurant[]
+  favoriteMenuItems FavoriteMenuItem[]
+  cart              Cart?
+  notifications     Notification[]
+  refreshTokens     RefreshToken[]
+  
+  // For restaurant owners
+  restaurant        Restaurant?
+  
+  // For delivery drivers
+  deliveryDriver    DeliveryDriver?
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id          String   @id @default(uuid())
+  token       String   @unique
+  userId      String
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id          String   @id @default(uuid())
+  email       String
+  token       String   @unique
+  expiresAt   DateTime
+  used        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@map("password_reset_tokens")
+  @@index([email])
+  @@index([token])
+}
+
+// ============================================
+// ADDRESS
+// ============================================
+
+enum AddressType {
+  HOME
+  WORK
+  OTHER
+}
+
+model Address {
+  id          String       @id @default(uuid())
+  userId      String
+  type        AddressType  @default(HOME)
+  label       String?
+  fullAddress String
+  latitude    Float?
+  longitude   Float?
+  isDefault   Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders      Order[]
+
+  @@map("addresses")
+}
+
+// ============================================
+// RESTAURANT
+// ============================================
+
+enum RestaurantStatus {
+  ACTIVE
+  INACTIVE
+  PENDING_APPROVAL
+  SUSPENDED
+}
+
+model Restaurant {
+  id              String            @id @default(uuid())
+  ownerId         String            @unique
+  name            String
+  description     String?
+  logo            String?
+  coverImage      String?
+  address         String
+  latitude        Float?
+  longitude       Float?
+  phoneNumber     String
+  email           String?
+  openingHours    Json              // Store as JSON: {monday: {open: "09:00", close: "22:00"}, ...}
+  rating          Float             @default(0)
+  totalReviews    Int               @default(0)
+  status          RestaurantStatus  @default(PENDING_APPROVAL)
+  isOpen          Boolean           @default(false)
+  deliveryFee     Float             @default(0)
+  minOrderAmount  Float             @default(0)
+  preparationTime Int               @default(30) // in minutes
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  owner           User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  categories      RestaurantCategory[]
+  menuItems       MenuItem[]
+  orders          Order[]
+  reviews         Review[]
+  favoriteBy      FavoriteRestaurant[]
+
+  @@map("restaurants")
+}
+
+model RestaurantCategory {
+  id           String     @id @default(uuid())
+  restaurantId String
+  name         String
+  description  String?
+  displayOrder Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  menuItems    MenuItem[]
+
+  @@map("restaurant_categories")
+}
+
+// ============================================
+// MENU & FOOD ITEMS
+// ============================================
+
+enum MenuItemStatus {
+  AVAILABLE
+  UNAVAILABLE
+  OUT_OF_STOCK
+}
+
+model MenuItem {
+  id           String         @id @default(uuid())
+  restaurantId String
+  categoryId   String?
+  name         String
+  description  String?
+  image        String?
+  price        Float
+  discountPrice Float?
+  status       MenuItemStatus @default(AVAILABLE)
+  isVegetarian Boolean        @default(false)
+  isSpicy      Boolean        @default(false)
+  calories     Int?
+  preparationTime Int?        // in minutes
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  restaurant   Restaurant     @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  category     RestaurantCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  cartItems    CartItem[]
+  orderItems   OrderItem[]
+  favoriteBy   FavoriteMenuItem[]
+
+  @@map("menu_items")
+}
+
+// ============================================
+// CART
+// ============================================
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id         String   @id @default(uuid())
+  cartId     String
+  menuItemId String
+  quantity   Int      @default(1)
+  specialInstructions String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  cart       Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, menuItemId])
+  @@map("cart_items")
+}
+
+// ============================================
+// ORDER
+// ============================================
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY_FOR_PICKUP
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  CREDIT_CARD
+  DEBIT_CARD
+  ONLINE_BANKING
+  E_WALLET
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model Order {
+  id              String        @id @default(uuid())
+  orderNumber     String        @unique
+  userId          String
+  restaurantId    String
+  addressId       String
+  driverId        String?
+  
+  // Order details
+  subtotal        Float
+  deliveryFee     Float
+  tax             Float         @default(0)
+  discount        Float         @default(0)
+  total           Float
+  
+  // Status
+  status          OrderStatus   @default(PENDING)
+  paymentMethod   PaymentMethod
+  paymentStatus   PaymentStatus @default(PENDING)
+  
+  // Timestamps
+  orderDate       DateTime      @default(now())
+  confirmedAt     DateTime?
+  preparingAt     DateTime?
+  readyAt         DateTime?
+  pickedUpAt      DateTime?
+  deliveredAt     DateTime?
+  cancelledAt     DateTime?
+  
+  // Additional info
+  specialInstructions String?
+  cancelReason    String?
+  estimatedDeliveryTime DateTime?
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  user            User          @relation(fields: [userId], references: [id])
+  restaurant      Restaurant    @relation(fields: [restaurantId], references: [id])
+  address         Address       @relation(fields: [addressId], references: [id])
+  driver          DeliveryDriver? @relation(fields: [driverId], references: [id])
+  items           OrderItem[]
+  tracking        OrderTracking[]
+  review          Review?
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String   @id @default(uuid())
+  orderId     String
+  menuItemId  String
+  quantity    Int
+  price       Float    // Price at the time of order
+  specialInstructions String?
+  createdAt   DateTime @default(now())
+
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem    MenuItem @relation(fields: [menuItemId], references: [id])
+
+  @@map("order_items")
+}
+
+model OrderTracking {
+  id          String      @id @default(uuid())
+  orderId     String
+  status      OrderStatus
+  message     String?
+  latitude    Float?
+  longitude   Float?
+  createdAt   DateTime    @default(now())
+
+  order       Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_tracking")
+}
+
+// ============================================
+// DELIVERY DRIVER
+// ============================================
+
+enum DriverStatus {
+  AVAILABLE
+  BUSY
+  OFFLINE
+}
+
+model DeliveryDriver {
+  id              String        @id @default(uuid())
+  userId          String        @unique
+  vehicleType     String        // motorcycle, bicycle, car
+  vehicleNumber   String
+  licenseNumber   String
+  status          DriverStatus  @default(OFFLINE)
+  currentLatitude Float?
+  currentLongitude Float?
+  rating          Float         @default(0)
+  totalDeliveries Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders          Order[]
+
+  @@map("delivery_drivers")
+}
+
+// ============================================
+// REVIEW & RATING
+// ============================================
+
+model Review {
+  id            String     @id @default(uuid())
+  userId        String
+  restaurantId  String
+  orderId       String     @unique
+  rating        Int        // 1-5
+  comment       String?
+  images        String[]   // Array of image URLs
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurant    Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  order         Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("reviews")
+}
+
+// ============================================
+// FAVORITES
+// ============================================
+
+model FavoriteRestaurant {
+  id            String     @id @default(uuid())
+  userId        String
+  restaurantId  String
+  createdAt     DateTime   @default(now())
+
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurant    Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, restaurantId])
+  @@map("favorite_restaurants")
+}
+
+model FavoriteMenuItem {
+  id            String     @id @default(uuid())
+  userId        String
+  menuItemId    String
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  menuItem      MenuItem   @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, menuItemId])
+  @@map("favorite_menu_items")
+}
+
+// ============================================
+// NOTIFICATION
+// ============================================
+
+enum NotificationType {
+  ORDER_UPDATE
+  PROMOTION
+  SYSTEM
+  DELIVERY
+  REVIEW
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  data      Json?            // Additional data as JSON
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
