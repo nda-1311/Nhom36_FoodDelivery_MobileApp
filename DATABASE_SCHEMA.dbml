@@ -1,0 +1,389 @@
+// Database Schema for Food Delivery App
+// Use https://dbdiagram.io to visualize this schema
+
+Project FoodDeliveryApp {
+  database_type: 'PostgreSQL'
+  Note: 'Food Delivery Application Database Schema'
+}
+
+// ============================================
+// USERS & AUTHENTICATION
+// ============================================
+
+Table users {
+  id uuid [pk, default: `gen_random_uuid()`]
+  email varchar [unique, not null]
+  password varchar [not null]
+  phone_number varchar [unique]
+  full_name varchar [not null]
+  avatar varchar
+  role user_role [not null, default: 'CUSTOMER']
+  status user_status [not null, default: 'ACTIVE']
+  email_verified boolean [default: false]
+  phone_verified boolean [default: false]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  last_login_at timestamp
+  
+  Note: 'Central user table - supports customers, restaurant owners, drivers, and admins'
+}
+
+Enum user_role {
+  CUSTOMER
+  RESTAURANT_OWNER
+  DELIVERY_DRIVER
+  ADMIN
+}
+
+Enum user_status {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  BANNED
+}
+
+Table refresh_tokens {
+  id uuid [pk]
+  token varchar [unique, not null]
+  user_id uuid [ref: > users.id, not null]
+  expires_at timestamp [not null]
+  created_at timestamp [default: `now()`]
+}
+
+Table password_reset_tokens {
+  id uuid [pk]
+  email varchar [not null]
+  token varchar [unique, not null]
+  expires_at timestamp [not null]
+  used boolean [default: false]
+  created_at timestamp [default: `now()`]
+  
+  indexes {
+    email
+    token
+  }
+}
+
+// ============================================
+// ADDRESSES
+// ============================================
+
+Table addresses {
+  id uuid [pk]
+  user_id uuid [ref: > users.id, not null]
+  type address_type [default: 'HOME']
+  label varchar
+  full_address text [not null]
+  latitude float
+  longitude float
+  is_default boolean [default: false]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  
+  Note: 'User delivery addresses with geolocation'
+}
+
+Enum address_type {
+  HOME
+  WORK
+  OTHER
+}
+
+// ============================================
+// RESTAURANTS
+// ============================================
+
+Table restaurants {
+  id uuid [pk]
+  owner_id uuid [ref: - users.id, unique, not null]
+  name varchar [not null]
+  description text
+  logo varchar
+  cover_image varchar
+  address text [not null]
+  latitude float
+  longitude float
+  phone_number varchar [not null]
+  email varchar
+  opening_hours jsonb
+  rating float [default: 0]
+  total_reviews int [default: 0]
+  status restaurant_status [default: 'PENDING_APPROVAL']
+  is_open boolean [default: false]
+  delivery_fee decimal [default: 0]
+  min_order_amount decimal [default: 0]
+  preparation_time int [default: 30]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  
+  Note: 'Restaurant profiles owned by users with RESTAURANT_OWNER role'
+}
+
+Enum restaurant_status {
+  ACTIVE
+  INACTIVE
+  PENDING_APPROVAL
+  SUSPENDED
+}
+
+Table restaurant_categories {
+  id uuid [pk]
+  restaurant_id uuid [ref: > restaurants.id, not null]
+  name varchar [not null]
+  description text
+  display_order int [default: 0]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  
+  Note: 'Menu categories within each restaurant'
+}
+
+// ============================================
+// MENU ITEMS
+// ============================================
+
+Table menu_items {
+  id uuid [pk]
+  restaurant_id uuid [ref: > restaurants.id, not null]
+  category_id uuid [ref: > restaurant_categories.id]
+  name varchar [not null]
+  description text
+  image varchar
+  price decimal [not null]
+  discount_price decimal
+  status menu_item_status [default: 'AVAILABLE']
+  is_vegetarian boolean [default: false]
+  is_spicy boolean [default: false]
+  calories int
+  preparation_time int
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  
+  Note: 'Food items available at restaurants'
+}
+
+Enum menu_item_status {
+  AVAILABLE
+  UNAVAILABLE
+  OUT_OF_STOCK
+}
+
+// ============================================
+// SHOPPING CART
+// ============================================
+
+Table carts {
+  id uuid [pk]
+  user_id uuid [ref: - users.id, unique, not null]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  
+  Note: 'One cart per user'
+}
+
+Table cart_items {
+  id uuid [pk]
+  cart_id uuid [ref: > carts.id, not null]
+  menu_item_id uuid [ref: > menu_items.id, not null]
+  quantity int [not null, default: 1]
+  special_instructions text
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  
+  indexes {
+    (cart_id, menu_item_id) [unique]
+  }
+  
+  Note: 'Items in user cart'
+}
+
+// ============================================
+// ORDERS
+// ============================================
+
+Table orders {
+  id uuid [pk]
+  order_number varchar [unique, not null]
+  user_id uuid [ref: > users.id, not null]
+  restaurant_id uuid [ref: > restaurants.id, not null]
+  address_id uuid [ref: > addresses.id, not null]
+  driver_id uuid [ref: > delivery_drivers.id]
+  
+  subtotal decimal [not null]
+  delivery_fee decimal [not null]
+  tax decimal [default: 0]
+  discount decimal [default: 0]
+  total decimal [not null]
+  
+  status order_status [default: 'PENDING']
+  payment_method payment_method [not null]
+  payment_status payment_status [default: 'PENDING']
+  
+  order_date timestamp [default: `now()`]
+  confirmed_at timestamp
+  preparing_at timestamp
+  ready_at timestamp
+  picked_up_at timestamp
+  delivered_at timestamp
+  cancelled_at timestamp
+  
+  special_instructions text
+  cancel_reason text
+  estimated_delivery_time timestamp
+  
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  
+  Note: 'Customer orders with full lifecycle tracking'
+}
+
+Enum order_status {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY_FOR_PICKUP
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+Enum payment_method {
+  CASH
+  CREDIT_CARD
+  DEBIT_CARD
+  ONLINE_BANKING
+  E_WALLET
+}
+
+Enum payment_status {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+Table order_items {
+  id uuid [pk]
+  order_id uuid [ref: > orders.id, not null]
+  menu_item_id uuid [ref: > menu_items.id, not null]
+  quantity int [not null]
+  price decimal [not null]
+  special_instructions text
+  created_at timestamp [default: `now()`]
+  
+  Note: 'Items in order with price snapshot'
+}
+
+Table order_tracking {
+  id uuid [pk]
+  order_id uuid [ref: > orders.id, not null]
+  status order_status [not null]
+  message text
+  latitude float
+  longitude float
+  created_at timestamp [default: `now()`]
+  
+  Note: 'Order status change history with location'
+}
+
+// ============================================
+// DELIVERY DRIVERS
+// ============================================
+
+Table delivery_drivers {
+  id uuid [pk]
+  user_id uuid [ref: - users.id, unique, not null]
+  vehicle_type varchar [not null]
+  vehicle_number varchar [not null]
+  license_number varchar [not null]
+  status driver_status [default: 'OFFLINE']
+  current_latitude float
+  current_longitude float
+  rating float [default: 0]
+  total_deliveries int [default: 0]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  
+  Note: 'Driver profiles for users with DELIVERY_DRIVER role'
+}
+
+Enum driver_status {
+  AVAILABLE
+  BUSY
+  OFFLINE
+}
+
+// ============================================
+// REVIEWS & RATINGS
+// ============================================
+
+Table reviews {
+  id uuid [pk]
+  user_id uuid [ref: > users.id, not null]
+  restaurant_id uuid [ref: > restaurants.id, not null]
+  order_id uuid [ref: - orders.id, unique, not null]
+  rating int [not null]
+  comment text
+  images text[]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  
+  Note: 'Restaurant reviews - one per order, rating 1-5'
+}
+
+// ============================================
+// FAVORITES
+// ============================================
+
+Table favorite_restaurants {
+  id uuid [pk]
+  user_id uuid [ref: > users.id, not null]
+  restaurant_id uuid [ref: > restaurants.id, not null]
+  created_at timestamp [default: `now()`]
+  
+  indexes {
+    (user_id, restaurant_id) [unique]
+  }
+  
+  Note: 'User favorite restaurants - many-to-many'
+}
+
+Table favorite_menu_items {
+  id uuid [pk]
+  user_id uuid [ref: > users.id, not null]
+  menu_item_id uuid [ref: > menu_items.id, not null]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  
+  indexes {
+    (user_id, menu_item_id) [unique]
+  }
+  
+  Note: 'User favorite menu items - many-to-many'
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+Table notifications {
+  id uuid [pk]
+  user_id uuid [ref: > users.id, not null]
+  type notification_type [not null]
+  title varchar [not null]
+  message text [not null]
+  data jsonb
+  is_read boolean [default: false]
+  created_at timestamp [default: `now()`]
+  
+  Note: 'User notifications and push messages'
+}
+
+Enum notification_type {
+  ORDER_UPDATE
+  PROMOTION
+  SYSTEM
+  DELIVERY
+  REVIEW
+}
