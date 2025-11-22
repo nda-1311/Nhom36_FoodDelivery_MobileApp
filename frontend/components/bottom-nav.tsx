@@ -70,7 +70,11 @@ export default function BottomNav({ currentPage, onNavigate }: BottomNavProps) {
 
       {/* CART */}
       <TouchableOpacity
-        onPress={() => onNavigate("cart")}
+        onPress={() => {
+          console.log("🛒 Bottom nav - Cart button clicked!");
+          console.log("🛒 Current page:", currentPage);
+          onNavigate("cart");
+        }}
         style={styles.tabButton}
       >
         <View>

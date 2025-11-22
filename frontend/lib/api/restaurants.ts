@@ -6,6 +6,8 @@ export interface Restaurant {
   description?: string;
   logo?: string;
   coverImage?: string;
+  image?: string; // Alias for coverImage
+  imageUrl?: string; // Legacy field
   address: string;
   latitude?: number;
   longitude?: number;
@@ -17,8 +19,10 @@ export interface Restaurant {
   status: string;
   isOpen: boolean;
   deliveryFee: number;
+  deliveryTime?: string; // Formatted delivery time
   minOrderAmount: number;
   preparationTime: number;
+  cuisine?: string; // Restaurant cuisine type
   createdAt: string;
   updatedAt: string;
 }
@@ -42,7 +46,7 @@ class RestaurantService {
   async getRestaurants(
     filters?: SearchFilters
   ): Promise<ApiResponse<Restaurant[]>> {
-    return apiClient.get<Restaurant[]>("/restaurants", filters as any);
+    return apiClient.get<Restaurant[]>("/restaurants", filters);
   }
 
   /**
@@ -60,9 +64,9 @@ class RestaurantService {
     filters?: SearchFilters
   ): Promise<ApiResponse<Restaurant[]>> {
     return apiClient.get<Restaurant[]>("/restaurants/search", {
-      search: query,
+      q: query,
       ...filters,
-    } as any);
+    });
   }
 
   /**
@@ -84,6 +88,27 @@ class RestaurantService {
       latitude,
       longitude,
       radius,
+    } as any);
+  }
+
+  /**
+   * Get restaurant menu items
+   */
+  async getRestaurantMenu(restaurantId: string): Promise<ApiResponse<any[]>> {
+    return apiClient.get<any[]>(`/restaurants/${restaurantId}/menu`);
+  }
+
+  /**
+   * Get restaurant reviews
+   */
+  async getRestaurantReviews(
+    restaurantId: string,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<ApiResponse<any>> {
+    return apiClient.get<any>(`/restaurants/${restaurantId}/reviews`, {
+      page,
+      limit,
     } as any);
   }
 }

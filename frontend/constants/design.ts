@@ -102,8 +102,11 @@ export const TYPOGRAPHY = {
 export const SPACING = {
   xs: 4,
   s: 8,
+  sm: 8, // Alias for s
   m: 12,
+  md: 16, // Alias for m (adjusted to 16 for common use)
   l: 16,
+  lg: 24, // Alias for l (adjusted to 24 for large spacing)
   xl: 20,
   xxl: 24,
   xxxl: 32,

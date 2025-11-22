@@ -7,8 +7,10 @@ import {
 } from "@/constants/design";
 import { useFavorites } from "@/hooks/useFavorites";
 import { apiClient } from "@/lib/api/client";
-import { useCart } from "@/store/cart-context";
+import { cartEvents } from "@/lib/cartEvents";
+import { queryKeys } from "@/lib/queryClient";
 import { getFoodImage } from "@/utils/foodImageMap";
+import { useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   ChevronLeft,
@@ -18,8 +20,9 @@ import {
   ShoppingCart,
   Star,
 } from "lucide-react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   SafeAreaView,
@@ -39,22 +42,60 @@ interface FoodDetailsPageProps {
 }
 
 export default function FoodDetailsPage({
-  data,
+  data: initialData,
   onNavigate,
   favorites,
   onToggleFavorite,
 }: FoodDetailsPageProps) {
+  const [data, setData] = useState(initialData);
+  const [loading, setLoading] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState("L");
-  const [selectedSpiciness, setSelectedSpiciness] = useState("Hot");
-  const [toppings, setToppings] = useState<string[]>([
-    "Corn",
-    "Cheese Cheddar",
-  ]);
+  const [selectedSpiciness, setSelectedSpiciness] = useState("Không cay");
+  const [toppings, setToppings] = useState<string[]>([]);
   const [note, setNote] = useState("");
 
-  const { addItem } = useCart();
   const { isFav, toggle, loading: favLoading } = useFavorites();
+  const queryClient = useQueryClient();
+
+  // Fetch full food data if only foodId is provided
+  useEffect(() => {
+    const fetchFoodData = async () => {
+      // If we have full data already, skip
+      if (initialData?.price && initialData?.name) {
+        setData(initialData);
+        return;
+      }
+
+      // If we only have foodId, fetch the full data
+      const foodId = initialData?.foodId || initialData?.id;
+      if (!foodId) {
+        Alert.alert("Lỗi", "Không tìm thấy thông tin món ăn");
+        return;
+      }
+
+      try {
+        setLoading(true);
+        console.log("🔍 Fetching food details for ID:", foodId);
+
+        const result = await apiClient.get(`/food/${foodId}`);
+
+        if (result.success && result.data) {
+          console.log("✅ Fetched food data:", result.data);
+          setData(result.data);
+        } else {
+          throw new Error("Failed to fetch food data");
+        }
+      } catch (error) {
+        console.error("❌ Error fetching food:", error);
+        Alert.alert("Lỗi", "Không thể tải thông tin món ăn");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFoodData();
+  }, [initialData]);
 
   // ✅ Sử dụng useMemo để tính lại khi isFav thay đổi
   const isFavorite = React.useMemo(() => {
@@ -68,6 +109,25 @@ export default function FoodDetailsPage({
     );
     return result;
   }, [data?.id, isFav]);
+
+  // Show loading state
+  if (loading || !data) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View
+          style={[
+            styles.container,
+            { justifyContent: "center", alignItems: "center" },
+          ]}
+        >
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={{ marginTop: 16, color: COLORS.textSecondary }}>
+            Đang tải thông tin món ăn...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const displayName = data?.name || "Món ăn";
   const displayDesc =
@@ -89,26 +149,33 @@ export default function FoodDetailsPage({
     selectedSize === "L" ? 10000 : selectedSize === "M" ? 5000 : 0;
   const priceToppings = toppings.reduce(
     (sum, t) =>
-      sum + (t === "Corn" ? 2000 : t === "Cheese Cheddar" ? 5000 : 10000),
+      sum + (t === "Bắp" ? 2000 : t === "Phô mai Cheddar" ? 5000 : 10000),
     0
   );
   const totalPrice = (basePrice + priceSize + priceToppings) * quantity;
 
-  // ✅ Sửa lỗi không tăng count
+  // ✅ Sửa lỗi không tăng count và tối ưu flow
   const handleAddToCart = async () => {
     try {
-      const price = basePrice + priceSize + priceToppings;
-
       // Build special instructions from selections
       const instructions = [];
-      if (selectedSize !== "S") instructions.push(`Size: ${selectedSize}`);
-      if (selectedSpiciness !== "Mild")
-        instructions.push(`Spiciness: ${selectedSpiciness}`);
+      if (selectedSize !== "S") instructions.push(`Kích cỡ: ${selectedSize}`);
+      if (selectedSpiciness !== "Không cay")
+        instructions.push(`Độ cay: ${selectedSpiciness}`);
       if (toppings.length > 0)
-        instructions.push(`Toppings: ${toppings.join(", ")}`);
-      if (note) instructions.push(`Note: ${note}`);
+        instructions.push(`Topping: ${toppings.join(", ")}`);
+      if (note) instructions.push(`Ghi chú: ${note}`);
 
       const specialInstructions = instructions.join(" | ");
+
+      // Debug: Log data before API call
+      console.log("🔍 Add to cart - Food data:", {
+        id: data.id,
+        name: data.name || data.displayName,
+        price: data.price,
+        quantity,
+        specialInstructions,
+      });
 
       // Call backend API to add to cart
       const result = await apiClient.post("/cart", {
@@ -117,28 +184,32 @@ export default function FoodDetailsPage({
         specialInstructions: specialInstructions || undefined,
       });
 
+      console.log("✅ Cart API response:", result);
+
       if (!result.success) {
         throw new Error(result.message || "Failed to add to cart");
       }
 
-      // ✅ Cập nhật Context (hiển thị ngay)
-      const newItem = {
-        id: String(data.id),
-        name: displayName,
-        price,
-        qty: quantity,
-        image: data.image_url || data.image || "https://placehold.co/200x200",
-        meta: {
-          size: selectedSize,
-          spiciness: selectedSpiciness,
-          toppings,
-          note,
-        },
-      };
-      addItem(newItem);
+      // ✅ Invalidate React Query cache để CartPage reload
+      console.log("🔄 Invalidating cart query cache...");
+      await queryClient.invalidateQueries({ queryKey: queryKeys.cart.list });
 
-      Alert.alert("🎉 Thành công", "Đã thêm món vào giỏ hàng!");
+      // ✅ Emit event để badge reload ngay lập tức
+      console.log("📢 Emitting cart changed event...");
+      cartEvents.emit();
+
+      // ✅ Tự động chuyển sang trang giỏ hàng sau khi thêm thành công
+      console.log("✅ Navigating to cart page...");
       onNavigate("cart");
+
+      // Hiển thị toast notification thay vì Alert
+      setTimeout(() => {
+        Alert.alert(
+          "🎉 Đã thêm vào giỏ hàng!",
+          `${displayName} (x${quantity})`,
+          [{ text: "OK" }]
+        );
+      }, 500);
     } catch (err: any) {
       console.error("❌ Add to cart error:", err);
       Alert.alert("Lỗi", err.message || "Không thể thêm vào giỏ hàng!");
@@ -147,11 +218,26 @@ export default function FoodDetailsPage({
 
   const handleToggleFavorite = async () => {
     if (!data?.id) return;
-    await toggle(String(data.id), {
-      name: displayName,
-      image: data.image || data.image_url,
-      price: basePrice,
-    });
+
+    try {
+      await toggle(String(data.id), {
+        name: displayName,
+        image: data.image || data.image_url,
+        price: basePrice,
+      });
+    } catch (error: any) {
+      Alert.alert(
+        "Thông báo",
+        error.message || "Vui lòng đăng nhập để sử dụng tính năng yêu thích",
+        [
+          { text: "Hủy", style: "cancel" },
+          {
+            text: "Đăng nhập",
+            onPress: () => onNavigate("login"),
+          },
+        ]
+      );
+    }
   };
 
   console.log("Food Details Data:", data);
@@ -267,7 +353,7 @@ export default function FoodDetailsPage({
             <Text style={styles.sectionTitle}>🧀 Topping</Text>
             <Text style={styles.optionalBadge}>Tùy chọn</Text>
           </View>
-          {["Corn", "Cheese Cheddar", "Salted egg"].map((topping) => (
+          {["Bắp", "Phô mai Cheddar", "Trứng muối"].map((topping) => (
             <TouchableOpacity
               key={topping}
               onPress={() => toggleTopping(topping)}
@@ -304,9 +390,9 @@ export default function FoodDetailsPage({
                 ]}
               >
                 +
-                {(topping === "Corn"
+                {(topping === "Bắp"
                   ? 2000
-                  : topping === "Cheese Cheddar"
+                  : topping === "Phô mai Cheddar"
                   ? 5000
                   : 10000
                 ).toLocaleString("vi-VN")}
@@ -316,43 +402,45 @@ export default function FoodDetailsPage({
           ))}
         </View>
 
-        {/* Spiciness */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>🌶️ Độ cay</Text>
-            <Text style={styles.requiredBadge}>Bắt buộc</Text>
-          </View>
-          <View style={styles.optionsGrid}>
-            {["Không cay", "Cay", "Rất cay"].map((level, idx) => {
-              const originalLevel = ["No", "Hot", "Very hot"][idx];
-              return (
-                <TouchableOpacity
-                  key={originalLevel}
-                  onPress={() => setSelectedSpiciness(originalLevel)}
-                  style={[
-                    styles.optionCard,
-                    selectedSpiciness === originalLevel &&
-                      styles.optionCardSelected,
-                  ]}
-                  activeOpacity={0.7}
-                >
-                  <Text
+        {/* Spiciness - CHỈ HIỂN thị cho món phù hợp */}
+        {displayName.toLowerCase().includes("gà") ||
+        displayName.toLowerCase().includes("chicken") ||
+        displayName.toLowerCase().includes("cay") ? (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>🌶️ Độ cay</Text>
+              <Text style={styles.optionalBadge}>Tùy chọn</Text>
+            </View>
+            <View style={styles.optionsGrid}>
+              {["Không cay", "Cay", "Rất cay"].map((level) => {
+                return (
+                  <TouchableOpacity
+                    key={level}
+                    onPress={() => setSelectedSpiciness(level)}
                     style={[
-                      styles.optionLabel,
-                      selectedSpiciness === originalLevel &&
-                        styles.optionLabelSelected,
+                      styles.optionCard,
+                      selectedSpiciness === level && styles.optionCardSelected,
                     ]}
+                    activeOpacity={0.7}
                   >
-                    {level}
-                  </Text>
-                  {selectedSpiciness === originalLevel && (
-                    <View style={styles.selectedIndicator} />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
+                    <Text
+                      style={[
+                        styles.optionLabel,
+                        selectedSpiciness === level &&
+                          styles.optionLabelSelected,
+                      ]}
+                    >
+                      {level}
+                    </Text>
+                    {selectedSpiciness === level && (
+                      <View style={styles.selectedIndicator} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
-        </View>
+        ) : null}
 
         {/* Special Instructions */}
         <View style={styles.section}>

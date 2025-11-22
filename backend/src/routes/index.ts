@@ -16,6 +16,7 @@ import foodRoutes from './foodRoutes';
 import orderRoutes from './orderRoutes';
 import restaurantRoutes from './restaurantRoutes';
 import reviewRoutes from './reviewRoutes';
+import seedRoutes from './seedRoutes';
 import setupRoutes from './setupRoutes';
 
 const router = Router();
@@ -62,6 +63,8 @@ console.log('📍 Mounting admin routes...');
 router.use('/admin', adminRoutes);
 console.log('📍 Mounting setup routes (TEMPORARY)...');
 router.use('/setup', setupRoutes);
+console.log('📍 Mounting seed routes (DEVELOPMENT)...');
+router.use('/seed', seedRoutes);
 console.log('✅ All routes mounted successfully');
 
 // 404 handler for API routes

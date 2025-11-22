@@ -9,11 +9,11 @@
  * - GET /restaurants/:id/categories - Get restaurant categories
  */
 
-import { NextFunction, Request, Response } from "express";
-import "../types/express"; // Import type extensions
-import Joi from "joi";
-import { asyncHandler } from "../middleware/errorHandler";
-import * as restaurantService from "../services/restaurantService";
+import { NextFunction, Request, Response } from 'express';
+import Joi from 'joi';
+import { asyncHandler } from '../middleware/errorHandler';
+import * as restaurantService from '../services/restaurantService';
+import '../types/express'; // Import type extensions
 
 // ============================================
 // Validation Schemas
@@ -23,8 +23,8 @@ const getRestaurantsSchema = Joi.object({
   page: Joi.number().integer().min(1).optional(),
   limit: Joi.number().integer().min(1).max(100).optional(),
   search: Joi.string().optional(),
-  sortBy: Joi.string().valid("name", "rating", "createdAt").optional(),
-  sortOrder: Joi.string().valid("asc", "desc").optional(),
+  sortBy: Joi.string().valid('name', 'rating', 'createdAt').optional(),
+  sortOrder: Joi.string().valid('asc', 'desc').optional(),
   minRating: Joi.number().min(0).max(5).optional(),
   isOpen: Joi.boolean().optional(),
 });
@@ -38,7 +38,7 @@ const getMenuSchema = Joi.object({
 
 const searchSchema = Joi.object({
   q: Joi.string().required().messages({
-    "any.required": "Search query is required",
+    'any.required': 'Search query is required',
   }),
 });
 
@@ -58,7 +58,7 @@ export const getRestaurants = asyncHandler(
     if (error) {
       return res.status(400).json({
         success: false,
-        message: "Validation error",
+        message: 'Validation error',
         errors: error.details.map((detail: any) => detail.message),
       });
     }
@@ -69,7 +69,7 @@ export const getRestaurants = asyncHandler(
     // Send response
     res.status(200).json({
       success: true,
-      message: "Restaurants retrieved successfully",
+      message: 'Restaurants retrieved successfully',
       data: result.data,
       pagination: result.pagination,
     });
@@ -90,7 +90,7 @@ export const getRestaurantById = asyncHandler(
     // Send response
     res.status(200).json({
       success: true,
-      message: "Restaurant retrieved successfully",
+      message: 'Restaurant retrieved successfully',
       data: restaurant,
     });
   }
@@ -110,7 +110,7 @@ export const getRestaurantMenu = asyncHandler(
     if (error) {
       return res.status(400).json({
         success: false,
-        message: "Validation error",
+        message: 'Validation error',
         errors: error.details.map((detail: any) => detail.message),
       });
     }
@@ -121,7 +121,7 @@ export const getRestaurantMenu = asyncHandler(
     // Send response
     res.status(200).json({
       success: true,
-      message: "Restaurant menu retrieved successfully",
+      message: 'Restaurant menu retrieved successfully',
       data: result,
     });
   }
@@ -139,7 +139,7 @@ export const searchRestaurants = asyncHandler(
     if (error) {
       return res.status(400).json({
         success: false,
-        message: "Validation error",
+        message: 'Validation error',
         errors: error.details.map((detail: any) => detail.message),
       });
     }
@@ -150,7 +150,7 @@ export const searchRestaurants = asyncHandler(
     // Send response
     res.status(200).json({
       success: true,
-      message: "Search completed successfully",
+      message: 'Search completed successfully',
       data: restaurants,
       count: restaurants.length,
     });
@@ -171,7 +171,7 @@ export const getRestaurantCategories = asyncHandler(
     // Send response
     res.status(200).json({
       success: true,
-      message: "Categories retrieved successfully",
+      message: 'Categories retrieved successfully',
       data: categories,
       count: categories.length,
     });
@@ -211,7 +211,7 @@ export const advancedSearch = asyncHandler(
 
     res.json({
       success: true,
-      message: "Advanced search completed successfully",
+      message: 'Advanced search completed successfully',
       ...result,
     });
   }
@@ -250,7 +250,7 @@ export const getNearbyRestaurants = asyncHandler(
 
     res.json({
       success: true,
-      message: "Nearby restaurants retrieved successfully",
+      message: 'Nearby restaurants retrieved successfully',
       data: restaurants,
       count: restaurants.length,
     });

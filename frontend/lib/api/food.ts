@@ -38,7 +38,7 @@ class FoodService {
    * Get menu items with filters
    */
   async getMenuItems(filters?: MenuFilters): Promise<ApiResponse<MenuItem[]>> {
-    return apiClient.get<MenuItem[]>("/food", filters as any);
+    return apiClient.get<MenuItem[]>("/food", filters);
   }
 
   /**
@@ -55,10 +55,10 @@ class FoodService {
     restaurantId: string,
     filters?: MenuFilters
   ): Promise<ApiResponse<MenuItem[]>> {
-    return apiClient.get<MenuItem[]>("/food/restaurant", {
-      restaurantId,
-      ...filters,
-    } as any);
+    return apiClient.get<MenuItem[]>(
+      `/restaurants/${restaurantId}/menu`,
+      filters
+    );
   }
 
   /**
@@ -69,16 +69,16 @@ class FoodService {
     filters?: MenuFilters
   ): Promise<ApiResponse<MenuItem[]>> {
     return apiClient.get<MenuItem[]>("/food/search", {
-      search: query,
+      q: query,
       ...filters,
-    } as any);
+    });
   }
 
   /**
    * Get popular menu items
    */
   async getPopularItems(limit?: number): Promise<ApiResponse<MenuItem[]>> {
-    return apiClient.get<MenuItem[]>("/food/popular", { limit } as any);
+    return apiClient.get<MenuItem[]>("/food/popular", { limit });
   }
 
   /**

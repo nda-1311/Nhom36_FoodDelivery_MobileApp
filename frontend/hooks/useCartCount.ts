@@ -2,6 +2,7 @@
 
 import { cartService } from "@/lib/api";
 import { apiClient } from "@/lib/api/client";
+import { cartEvents } from "@/lib/cartEvents";
 import { useCallback, useEffect, useState } from "react";
 
 export function useCartCount() {
@@ -20,6 +21,7 @@ export function useCartCount() {
     try {
       const response = await cartService.getCart();
       if (response.success && response.data) {
+        // ✅ Tính tổng quantity thay vì đếm items
         const total = response.data.items.reduce(
           (sum, item) => sum + item.quantity,
           0
@@ -39,14 +41,15 @@ export function useCartCount() {
   useEffect(() => {
     refresh();
 
-    // Listen to custom events for immediate updates after add/remove
-    const onCartChanged = () => refresh();
-    if (typeof window !== "undefined") {
-      window.addEventListener("cart:changed", onCartChanged);
-      return () => {
-        window.removeEventListener("cart:changed", onCartChanged);
-      };
-    }
+    // Subscribe to cart events for immediate updates
+    const unsubscribe = cartEvents.subscribe(() => {
+      console.log("🔔 useCartCount received cart change event");
+      refresh();
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, [refresh]);
 
   return { cartCount: count, refreshCartCount: refresh, loading };

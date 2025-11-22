@@ -57,9 +57,12 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
   // Fetch cart and user address from API
   useEffect(() => {
     const fetchData = async () => {
+      console.log("🔄 CheckoutPage: Fetching cart data...");
       try {
         // Fetch cart
         const cartResponse = await cartService.getCart();
+        console.log("📦 Cart response:", cartResponse);
+
         if (cartResponse.success && cartResponse.data) {
           const cartItems = cartResponse.data.items.map((item: any) => ({
             id: item.id,
@@ -75,17 +78,23 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
             restaurant: item.menuItem.restaurant?.name || null,
             restaurant_id: item.menuItem.restaurantId,
           }));
+
+          console.log("✅ Parsed cart items:", cartItems);
           setItems(cartItems);
 
           // Set restaurant ID from first item
           if (cartItems.length > 0 && cartItems[0].restaurant_id) {
             setRestaurantId(cartItems[0].restaurant_id);
           }
+        } else {
+          console.warn("⚠️ No cart data returned");
         }
 
         // Fetch user addresses
         try {
           const addressResponse = await apiClient.get("/addresses");
+          console.log("📍 Address response:", addressResponse);
+
           if (
             addressResponse.success &&
             addressResponse.data &&
@@ -95,7 +104,10 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
             const defaultAddr =
               addressResponse.data.find((a: any) => a.isDefault) ||
               addressResponse.data[0];
+            console.log("✅ Using address:", defaultAddr);
             setUserAddressId(defaultAddr.id);
+          } else {
+            console.warn("⚠️ No addresses found");
           }
         } catch (addrError) {
           console.warn("Could not fetch addresses:", addrError);
@@ -104,6 +116,7 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
         console.error("Error fetching cart:", error);
       } finally {
         setLoading(false);
+        console.log("✅ CheckoutPage: Loading complete");
       }
     };
     fetchData();
@@ -122,19 +135,62 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
   const total = subtotal + deliveryFee + promotion;
   const money = (v: number) => `${v.toLocaleString("vi-VN")}đ`;
 
+  // ==================== CONSTANTS ====================
+  const addresses = [
+    { id: "home", label: "Nhà riêng", address: "201 Katlian No.21 Street" },
+    { id: "work", label: "Công ty", address: "456 Business Ave, Suite 100" },
+  ];
+
   // ==================== ĐẶT HÀNG ====================
   const handlePlaceOrder = async () => {
+    console.log("🚀 Place Order button clicked!");
+    console.log("📦 Items:", items.length);
+    console.log("📍 Address ID:", userAddressId);
+    console.log("📍 Selected Address:", selectedAddress);
+
     if (items.length === 0) {
       Alert.alert("Giỏ hàng trống", "Không thể tạo đơn hàng!");
       return;
     }
 
-    if (!userAddressId) {
-      Alert.alert(
-        "Lỗi",
-        "Không tìm thấy địa chỉ giao hàng! Vui lòng thêm địa chỉ."
-      );
-      return;
+    // ✅ If no address in DB, create one first
+    let addressId = userAddressId;
+    if (!addressId) {
+      console.log("⚠️ No address found, creating default address...");
+      try {
+        const selectedAddressData = addresses.find(
+          (a) => a.id === selectedAddress
+        );
+        const addressType = selectedAddress === "home" ? "HOME" : "WORK";
+        const addressLabel = selectedAddressData?.label || "Nhà riêng";
+        const fullAddress =
+          selectedAddressData?.address || "201 Katlian No.21 Street";
+
+        const newAddressResponse = await apiClient.post("/addresses", {
+          type: addressType, // Required: HOME, WORK, or OTHER
+          label: addressLabel, // Optional: Display label
+          fullAddress: fullAddress, // Required: Full address string (min 10 chars)
+          isDefault: true,
+        });
+
+        console.log("📍 Create address response:", newAddressResponse);
+
+        if (newAddressResponse.success && newAddressResponse.data) {
+          addressId = newAddressResponse.data.id;
+          console.log("✅ Created address:", addressId);
+        } else {
+          const errorMsg =
+            newAddressResponse.message || "Không thể tạo địa chỉ giao hàng!";
+          console.error("❌ Address creation failed:", errorMsg);
+          Alert.alert("Lỗi", errorMsg);
+          return;
+        }
+      } catch (error: any) {
+        console.error("❌ Error creating address:", error);
+        const errorMsg = error.message || "Không thể tạo địa chỉ giao hàng!";
+        Alert.alert("Lỗi", errorMsg);
+        return;
+      }
     }
 
     try {
@@ -142,7 +198,7 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
 
       // ✅ 1. Create order using API
       const orderData = {
-        addressId: userAddressId, // Use user's address ID
+        addressId: addressId, // Use address ID (from DB or newly created)
         paymentMethod:
           selectedPayment === "ewallet"
             ? "E_WALLET"
@@ -154,7 +210,6 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
 
       console.log("📤 Creating order with data:", orderData);
 
-      let response;
       let orderId;
 
       try {
@@ -194,7 +249,6 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
           return;
         }
 
-        response = responseData;
         orderId = responseData.data.id;
         console.log("✅ Order created successfully:", orderId);
       } catch (apiError: any) {
@@ -221,9 +275,14 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
         window.dispatchEvent(new Event("cart:changed"));
       }
 
-      // ✅ 4. Show success + navigate
-      Alert.alert("🎉 Thành công!", "Đơn hàng đã được tạo thành công.");
+      // ✅ 4. Navigate FIRST, then show alert
+      console.log("🚀 Navigating to order-tracking with orderId:", orderId);
       onNavigate("order-tracking", { orderId });
+
+      // Show success message after navigation
+      setTimeout(() => {
+        Alert.alert("🎉 Thành công!", "Đơn hàng đã được tạo thành công.");
+      }, 300);
     } catch (err: any) {
       console.error("💥 Error placing order:", err);
       Alert.alert("Lỗi", "Có lỗi xảy ra khi đặt hàng. Vui lòng thử lại.");
@@ -233,7 +292,15 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
   };
 
   // ==================== UI ====================
+  console.log(
+    "🎨 CheckoutPage render - loading:",
+    loading,
+    "items:",
+    items.length
+  );
+
   if (loading) {
+    console.log("⏳ Showing loading state");
     return (
       <View style={styles.centered}>
         <ActivityIndicator color={COLORS.primary} size="large" />
@@ -243,6 +310,7 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
   }
 
   if (items.length === 0) {
+    console.log("🛒 Showing empty cart state");
     return (
       <View style={styles.centered}>
         <Text style={styles.emptyIcon}>🛒</Text>
@@ -289,10 +357,7 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
     },
   ];
 
-  const addresses = [
-    { id: "home", label: "Nhà riêng", address: "201 Katlian No.21 Street" },
-    { id: "work", label: "Công ty", address: "456 Business Ave, Suite 100" },
-  ];
+  console.log("✅ Rendering checkout page with", items.length, "items");
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }}>
@@ -418,7 +483,12 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={styles.placeOrderButton}
-            onPress={handlePlaceOrder}
+            onPress={() => {
+              console.log("👆 Button PRESSED!");
+              handlePlaceOrder();
+            }}
+            activeOpacity={0.8}
+            testID="place-order-button"
           >
             <LinearGradient
               colors={COLORS.gradientPrimary as any}

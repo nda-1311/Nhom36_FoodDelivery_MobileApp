@@ -29,6 +29,7 @@ interface RegisterData {
   password: string;
   fullName?: string;
   phone?: string;
+  phoneNumber?: string; // Support both phone and phoneNumber
 }
 
 // Login data interface
@@ -77,7 +78,7 @@ const generateRefreshToken = (payload: JWTPayload): string => {
  * Register new user
  */
 export const register = async (data: RegisterData) => {
-  const { email, password, fullName, phone } = data;
+  const { email, password, fullName, phone, phoneNumber } = data;
 
   // Check if user already exists
   const existingUser = await db.user.findUnique({
@@ -92,13 +93,14 @@ export const register = async (data: RegisterData) => {
   // Hash password
   const hashedPassword = await hashPassword(password);
 
-  // Create user
+  // Create user - use phoneNumber if provided, fallback to phone
   const user = await db.user.create({
     data: {
       email,
       password: hashedPassword,
-      fullName: fullName || 'User',
-      phoneNumber: phone || null,
+      fullName: fullName && fullName.trim() ? fullName.trim() : 'User',
+      phoneNumber:
+        (phoneNumber && phoneNumber.trim()) || (phone && phone.trim()) || null,
       updatedAt: new Date(),
     },
     select: {
@@ -366,6 +368,15 @@ export const forgotPassword = async (email: string) => {
   // Send email with reset token
   const { sendPasswordResetEmail } = await import('../utils/emailService');
   await sendPasswordResetEmail(email, resetToken);
+
+  // Log OTP for development (remove in production)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('\n🔐 ========================================');
+    console.log(`📧 Password Reset OTP for: ${email}`);
+    console.log(`🔢 OTP Code: ${resetToken}`);
+    console.log(`⏰ Expires at: ${expiresAt.toLocaleString()}`);
+    console.log('🔐 ========================================\n');
+  }
 
   logger.info(`Password reset token generated for: ${email}`);
 

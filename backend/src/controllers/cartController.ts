@@ -10,11 +10,11 @@
  * - GET /cart/count - Get cart item count
  */
 
-import { NextFunction, Request, Response } from "express";
-import "../types/express"; // Import type extensions
-import Joi from "joi";
-import { asyncHandler } from "../middleware/errorHandler";
-import * as cartService from "../services/cartService";
+import { NextFunction, Request, Response } from 'express';
+import Joi from 'joi';
+import { asyncHandler } from '../middleware/errorHandler';
+import * as cartService from '../services/cartService';
+import '../types/express'; // Import type extensions
 
 // ============================================
 // Validation Schemas
@@ -22,18 +22,18 @@ import * as cartService from "../services/cartService";
 
 const addToCartSchema = Joi.object({
   menuItemId: Joi.string().required().messages({
-    "any.required": "Menu item ID is required",
+    'any.required': 'Menu item ID is required',
   }),
   quantity: Joi.number().integer().min(1).optional().default(1).messages({
-    "number.min": "Quantity must be at least 1",
+    'number.min': 'Quantity must be at least 1',
   }),
-  specialInstructions: Joi.string().optional().allow(""),
+  specialInstructions: Joi.string().optional().allow(''),
 });
 
 const updateQuantitySchema = Joi.object({
   quantity: Joi.number().integer().min(1).required().messages({
-    "number.min": "Quantity must be at least 1",
-    "any.required": "Quantity is required",
+    'number.min': 'Quantity must be at least 1',
+    'any.required': 'Quantity is required',
   }),
 });
 
@@ -49,18 +49,25 @@ export const getCart = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const userId = req.user?.userId;
 
+    console.log('🛒 Get cart request - User ID:', userId);
+
     if (!userId) {
+      console.log('❌ No user ID - Unauthorized');
       return res.status(401).json({
         success: false,
-        message: "Unauthorized",
+        message: 'Unauthorized',
       });
     }
 
     const cart = await cartService.getUserCart(userId);
+    console.log('📦 Cart retrieved:', {
+      itemCount: cart.items.length,
+      totalQty: cart.summary.totalQuantity,
+    });
 
     res.status(200).json({
       success: true,
-      message: "Cart retrieved successfully",
+      message: 'Cart retrieved successfully',
       data: cart,
     });
   }
@@ -77,7 +84,7 @@ export const addToCart = asyncHandler(
     if (!userId) {
       return res.status(401).json({
         success: false,
-        message: "Unauthorized",
+        message: 'Unauthorized',
       });
     }
 
@@ -87,7 +94,7 @@ export const addToCart = asyncHandler(
     if (error) {
       return res.status(400).json({
         success: false,
-        message: "Validation error",
+        message: 'Validation error',
         errors: error.details.map((detail: any) => detail.message),
       });
     }
@@ -101,7 +108,7 @@ export const addToCart = asyncHandler(
 
     res.status(201).json({
       success: true,
-      message: "Item added to cart",
+      message: 'Item added to cart',
       data: cartItem,
     });
   }
@@ -119,7 +126,7 @@ export const updateCartItem = asyncHandler(
     if (!userId) {
       return res.status(401).json({
         success: false,
-        message: "Unauthorized",
+        message: 'Unauthorized',
       });
     }
 
@@ -129,7 +136,7 @@ export const updateCartItem = asyncHandler(
     if (error) {
       return res.status(400).json({
         success: false,
-        message: "Validation error",
+        message: 'Validation error',
         errors: error.details.map((detail: any) => detail.message),
       });
     }
@@ -142,7 +149,7 @@ export const updateCartItem = asyncHandler(
 
     res.status(200).json({
       success: true,
-      message: "Cart item updated",
+      message: 'Cart item updated',
       data: cartItem,
     });
   }
@@ -160,7 +167,7 @@ export const removeFromCart = asyncHandler(
     if (!userId) {
       return res.status(401).json({
         success: false,
-        message: "Unauthorized",
+        message: 'Unauthorized',
       });
     }
 
@@ -184,7 +191,7 @@ export const clearCart = asyncHandler(
     if (!userId) {
       return res.status(401).json({
         success: false,
-        message: "Unauthorized",
+        message: 'Unauthorized',
       });
     }
 
@@ -209,7 +216,7 @@ export const getCartCount = asyncHandler(
     if (!userId) {
       return res.status(401).json({
         success: false,
-        message: "Unauthorized",
+        message: 'Unauthorized',
       });
     }
 

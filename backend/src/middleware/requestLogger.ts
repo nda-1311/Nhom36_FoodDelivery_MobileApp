@@ -71,6 +71,7 @@ const skip = (req: Request, res: Response): boolean => {
 
   // Skip static files
   if (req.url.startsWith('/uploads/')) return true;
+  if (req.url.startsWith('/public/')) return true;
 
   // Skip successful requests in production
   if (process.env.NODE_ENV === 'production' && res.statusCode < 400) {

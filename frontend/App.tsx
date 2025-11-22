@@ -50,7 +50,10 @@ import AdminStatisticsPage from "@/app/pages/AdminStatisticsPage";
 import AdminUsersPage from "@/app/pages/AdminUsersPage";
 
 // �🛒 Context & Components
+import { QueryClientProvider } from "@tanstack/react-query";
 import BottomNav from "./components/bottom-nav";
+import ErrorBoundary from "./components/ErrorBoundary";
+import { queryClient } from "./lib/queryClient";
 import { CartProvider, useCart } from "./store/cart-context"; // ✅ dùng context realtime thay vì useCartCount
 
 // ==============================
@@ -193,21 +196,27 @@ function AppContent() {
         return <LogoutPage onNavigate={navigateTo} />;
       case "home":
         return (
-          <HomePage
-            onNavigate={navigateTo}
-            favorites={favorites}
-            onToggleFavorite={toggleFavorite}
-          />
+          <ErrorBoundary>
+            <HomePage onNavigate={navigateTo} />
+          </ErrorBoundary>
         );
       case "search":
         return (
-          <SearchPage
-            onNavigate={navigateTo}
-            initialQuery={page.data?.initialQuery}
-          />
+          <ErrorBoundary>
+            <SearchPage
+              onNavigate={navigateTo}
+              onBack={() => navigateTo("home")}
+            />
+          </ErrorBoundary>
         );
       case "restaurant":
-        return <RestaurantPage data={page.data} onNavigate={navigateTo} />;
+        return (
+          <RestaurantPage
+            restaurantId={page.data?.restaurantId}
+            onNavigate={navigateTo}
+            onBack={() => navigateTo("home")}
+          />
+        );
       case "food-details":
         return (
           <FoodDetailsPage
@@ -218,11 +227,19 @@ function AppContent() {
           />
         );
       case "cart":
-        return <CartPage onNavigate={navigateTo} />;
+        return (
+          <CartPage onNavigate={navigateTo} onBack={() => navigateTo("home")} />
+        );
       case "checkout":
         return <CheckoutPage onNavigate={navigateTo} />;
       case "order-tracking":
-        return <OrderTrackingPage onNavigate={navigateTo} />;
+        return (
+          <OrderTrackingPage
+            orderId={page.data?.orderId}
+            onNavigate={navigateTo}
+            onBack={() => navigateTo("history")}
+          />
+        );
       case "chat":
         return <ChatPage onNavigate={navigateTo} />;
       case "call":
@@ -283,13 +300,7 @@ function AppContent() {
       case "admin-statistics":
         return <AdminStatisticsPage onNavigate={navigateTo} />;
       default:
-        return (
-          <HomePage
-            onNavigate={navigateTo}
-            favorites={favorites}
-            onToggleFavorite={toggleFavorite}
-          />
-        );
+        return <HomePage onNavigate={navigateTo} />;
     }
   };
 
@@ -338,9 +349,11 @@ function AppContent() {
 // ==============================
 export default function App() {
   return (
-    <CartProvider>
-      <AppContent />
-    </CartProvider>
+    <QueryClientProvider client={queryClient}>
+      <CartProvider>
+        <AppContent />
+      </CartProvider>
+    </QueryClientProvider>
   );
 }
 

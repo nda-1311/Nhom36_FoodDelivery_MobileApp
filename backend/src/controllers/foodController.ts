@@ -10,11 +10,11 @@
  * - GET /food/category/:category - Get food by category
  */
 
-import { NextFunction, Request, Response } from "express";
-import "../types/express"; // Import type extensions
-import Joi from "joi";
-import { asyncHandler } from "../middleware/errorHandler";
-import * as foodService from "../services/foodService";
+import { NextFunction, Request, Response } from 'express';
+import Joi from 'joi';
+import { asyncHandler } from '../middleware/errorHandler';
+import * as foodService from '../services/foodService';
+import '../types/express'; // Import type extensions
 
 // ============================================
 // Validation Schemas
@@ -23,21 +23,23 @@ import * as foodService from "../services/foodService";
 const getFoodItemsSchema = Joi.object({
   page: Joi.number().integer().min(1).optional(),
   limit: Joi.number().integer().min(1).max(100).optional(),
+  offset: Joi.number().integer().min(0).optional(),
   search: Joi.string().optional(),
   category: Joi.string().optional(),
   restaurantId: Joi.string().uuid().optional(),
   minPrice: Joi.number().min(0).optional(),
   maxPrice: Joi.number().min(0).optional(),
   minRating: Joi.number().min(0).max(5).optional(),
-  sortBy: Joi.string().valid("name", "price", "rating", "createdAt").optional(),
-  sortOrder: Joi.string().valid("asc", "desc").optional(),
-});
+  sortBy: Joi.string().valid('name', 'price', 'rating', 'createdAt').optional(),
+  sortOrder: Joi.string().valid('asc', 'desc').optional(),
+}).unknown(true); // Allow additional fields
 
 const searchSchema = Joi.object({
-  q: Joi.string().required().messages({
-    "any.required": "Search query is required",
-  }),
-});
+  q: Joi.string().optional(), // Make optional
+  query: Joi.string().optional(), // Accept both 'q' and 'query'
+  category: Joi.string().optional(),
+  restaurantId: Joi.string().uuid().optional(),
+}).unknown(true); // Allow additional fields
 
 const popularSchema = Joi.object({
   limit: Joi.number().integer().min(1).max(50).optional().default(10),
@@ -63,7 +65,7 @@ export const getFoodItems = asyncHandler(
     if (error) {
       return res.status(400).json({
         success: false,
-        message: "Validation error",
+        message: 'Validation error',
         errors: error.details.map((detail: any) => detail.message),
       });
     }
@@ -74,7 +76,7 @@ export const getFoodItems = asyncHandler(
     // Send response
     res.status(200).json({
       success: true,
-      message: "Food items retrieved successfully",
+      message: 'Food items retrieved successfully',
       data: result.data,
       pagination: result.pagination,
     });
@@ -95,7 +97,7 @@ export const getFoodItemById = asyncHandler(
     // Send response
     res.status(200).json({
       success: true,
-      message: "Food item retrieved successfully",
+      message: 'Food item retrieved successfully',
       data: foodItem,
     });
   }
@@ -113,7 +115,7 @@ export const searchFoodItems = asyncHandler(
     if (error) {
       return res.status(400).json({
         success: false,
-        message: "Validation error",
+        message: 'Validation error',
         errors: error.details.map((detail: any) => detail.message),
       });
     }
@@ -124,7 +126,7 @@ export const searchFoodItems = asyncHandler(
     // Send response
     res.status(200).json({
       success: true,
-      message: "Search completed successfully",
+      message: 'Search completed successfully',
       data: foodItems,
       count: foodItems.length,
     });
@@ -143,7 +145,7 @@ export const getPopularFoodItems = asyncHandler(
     if (error) {
       return res.status(400).json({
         success: false,
-        message: "Validation error",
+        message: 'Validation error',
         errors: error.details.map((detail: any) => detail.message),
       });
     }
@@ -154,7 +156,7 @@ export const getPopularFoodItems = asyncHandler(
     // Send response
     res.status(200).json({
       success: true,
-      message: "Popular food items retrieved successfully",
+      message: 'Popular food items retrieved successfully',
       data: foodItems,
       count: foodItems.length,
     });
@@ -173,7 +175,7 @@ export const getCategories = asyncHandler(
     // Send response
     res.status(200).json({
       success: true,
-      message: "Categories retrieved successfully",
+      message: 'Categories retrieved successfully',
       data: categories,
       count: categories.length,
     });
@@ -194,7 +196,7 @@ export const getFoodItemsByCategory = asyncHandler(
     if (error) {
       return res.status(400).json({
         success: false,
-        message: "Validation error",
+        message: 'Validation error',
         errors: error.details.map((detail: any) => detail.message),
       });
     }
@@ -223,9 +225,9 @@ export const advancedFoodSearch = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     // Validation schema
     const schema = Joi.object({
-      query: Joi.string().optional().allow(""),
-      category: Joi.string().optional().allow(""),
-      restaurantId: Joi.string().optional().allow(""),
+      query: Joi.string().optional().allow(''),
+      category: Joi.string().optional().allow(''),
+      restaurantId: Joi.string().optional().allow(''),
       minPrice: Joi.number().min(0).optional(),
       maxPrice: Joi.number().min(0).optional(),
       isVegetarian: Joi.boolean().optional(),
@@ -242,7 +244,7 @@ export const advancedFoodSearch = asyncHandler(
     if (error) {
       return res.status(400).json({
         success: false,
-        message: "Validation error",
+        message: 'Validation error',
         errors: error.details.map((detail: any) => detail.message),
       });
     }
@@ -265,7 +267,7 @@ export const advancedFoodSearch = asyncHandler(
     // Send response
     res.status(200).json({
       success: true,
-      message: "Food items search completed successfully",
+      message: 'Food items search completed successfully',
       data: result.foodItems,
       pagination: {
         page: result.page,
@@ -295,7 +297,7 @@ export const globalSearch = asyncHandler(
     if (error) {
       return res.status(400).json({
         success: false,
-        message: "Validation error",
+        message: 'Validation error',
         errors: error.details.map((detail: any) => detail.message),
       });
     }
@@ -309,7 +311,7 @@ export const globalSearch = asyncHandler(
     // Send response
     res.status(200).json({
       success: true,
-      message: "Global food search completed successfully",
+      message: 'Global food search completed successfully',
       data: foodItems,
       count: foodItems.length,
     });
@@ -333,7 +335,7 @@ export const getTrending = asyncHandler(
     if (error) {
       return res.status(400).json({
         success: false,
-        message: "Validation error",
+        message: 'Validation error',
         errors: error.details.map((detail: any) => detail.message),
       });
     }
@@ -344,7 +346,7 @@ export const getTrending = asyncHandler(
     // Send response
     res.status(200).json({
       success: true,
-      message: "Trending food items retrieved successfully",
+      message: 'Trending food items retrieved successfully',
       data: foodItems,
       count: foodItems.length,
     });

@@ -95,6 +95,7 @@ class Server {
 
     // Static files
     this.app.use('/uploads', express.static('uploads'));
+    this.app.use('/public', express.static('../frontend/assets/public'));
   }
 
   /**

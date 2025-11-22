@@ -11,24 +11,24 @@
  * - GET /:id/categories - Get restaurant categories
  */
 
-import { Router } from "express";
-import * as restaurantController from "../controllers/restaurantController";
-import { optionalAuth } from "../middleware/auth";
+import { Router } from 'express';
+import * as restaurantController from '../controllers/restaurantController';
+import { optionalAuth } from '../middleware/auth';
 
 const router = Router();
 
 // Public routes (with optional auth for personalization)
 // IMPORTANT: Specific routes must come before parameterized routes
-router.get("/search", optionalAuth, restaurantController.searchRestaurants);
+router.get('/search', optionalAuth, restaurantController.searchRestaurants);
 router.get(
-  "/advanced-search",
+  '/advanced-search',
   optionalAuth,
   restaurantController.advancedSearch
 );
-router.get("/nearby", optionalAuth, restaurantController.getNearbyRestaurants);
-router.get("/:id/menu", optionalAuth, restaurantController.getRestaurantMenu);
-router.get("/:id/categories", restaurantController.getRestaurantCategories);
-router.get("/:id", optionalAuth, restaurantController.getRestaurantById);
-router.get("/", optionalAuth, restaurantController.getRestaurants);
+router.get('/nearby', optionalAuth, restaurantController.getNearbyRestaurants);
+router.get('/:id/menu', optionalAuth, restaurantController.getRestaurantMenu);
+router.get('/:id/categories', restaurantController.getRestaurantCategories);
+router.get('/:id', optionalAuth, restaurantController.getRestaurantById);
+router.get('/', optionalAuth, restaurantController.getRestaurants);
 
 export default router;

@@ -1,7 +1,7 @@
 ﻿"use client";
 
-import { useEffect, useState, useCallback } from "react";
 import { favoriteService } from "@/lib/api";
+import { useCallback, useEffect, useState } from "react";
 
 type FavRow = {
   food_item_id: string;
@@ -82,12 +82,17 @@ export function useFavorites() {
       meta?: { name?: string; image?: string; price?: number }
     ) => {
       try {
-        console.log("Calling addMenuItemToFavorites API with foodId:", foodId);
+        // Check if user is logged in
+        const { apiClient } = await import("@/lib/api/client");
+        const token = await apiClient.getAccessToken();
+
+        if (!token) {
+          throw new Error("Vui lòng đăng nhập để thêm vào yêu thích");
+        }
+
         const response = await favoriteService.addMenuItemToFavorites(foodId);
-        console.log("Add API response:", response);
 
         if (response.success && response.data) {
-          console.log("Add successful, updating local state...");
           // ✅ Cập nhật local state thay vì fetch lại
           const newFav: FavRow = {
             food_item_id: response.data.menuItemId,
@@ -110,17 +115,19 @@ export function useFavorites() {
 
   const remove = useCallback(async (foodId: string) => {
     try {
-      console.log(
-        "Calling removeMenuItemFromFavorites API with foodId:",
-        foodId
-      );
+      // Check if user is logged in
+      const { apiClient } = await import("@/lib/api/client");
+      const token = await apiClient.getAccessToken();
+
+      if (!token) {
+        throw new Error("Vui lòng đăng nhập để quản lý yêu thích");
+      }
+
       const response = await favoriteService.removeMenuItemFromFavorites(
         foodId
       );
-      console.log("Remove API response:", response);
 
       if (response.success) {
-        console.log("Remove successful, updating local state...");
         // ✅ Cập nhật local state thay vì fetch lại
         setItems((prev) =>
           prev.filter((item) => String(item.food_item_id) !== String(foodId))
@@ -139,22 +146,13 @@ export function useFavorites() {
       foodId: string,
       meta?: { name?: string; image?: string; price?: number }
     ) => {
-      console.log("Toggle favorite for foodId:", foodId);
-      console.log(
-        "Current favorites:",
-        items.map((i) => i.food_item_id)
-      );
-      console.log("Is favorite?", isFav(foodId));
-
       if (isFav(foodId)) {
-        console.log("Removing from favorites...");
         await remove(foodId);
       } else {
-        console.log("Adding to favorites...");
         await add(foodId, meta);
       }
     },
-    [isFav, add, remove, items]
+    [isFav, add, remove]
   );
 
   return { items, loading, error, isFav, add, remove, toggle, refresh };

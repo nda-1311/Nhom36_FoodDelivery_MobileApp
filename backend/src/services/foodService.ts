@@ -56,9 +56,11 @@ export const getFoodItems = async (params: FoodQueryParams) => {
     ];
   }
 
-  // Filter by category
+  // Filter by category name
   if (category) {
-    where.categoryId = category;
+    where.category = {
+      name: category,
+    };
   }
 
   // Filter by restaurant
@@ -97,6 +99,12 @@ export const getFoodItems = async (params: FoodQueryParams) => {
             isOpen: true,
             deliveryFee: true,
             preparationTime: true,
+          },
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
           },
         },
       },

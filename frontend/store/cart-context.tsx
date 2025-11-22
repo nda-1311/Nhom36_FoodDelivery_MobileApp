@@ -1,6 +1,7 @@
 "use client";
 import { cartService } from "@/lib/api";
 import { apiClient } from "@/lib/api/client";
+import { cartEvents } from "@/lib/cartEvents";
 import React, {
   createContext,
   useContext,
@@ -98,7 +99,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
       const response = await cartService.getCart();
       if (response.success && response.data) {
-        setCartCount(response.data.items.length);
+        // ✅ Tính tổng quantity của tất cả items
+        const totalQty = response.data.items.reduce(
+          (sum: number, item: any) => sum + (item.quantity || 0),
+          0
+        );
+        setCartCount(totalQty);
       } else {
         setCartCount(0);
       }
@@ -113,17 +119,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     // Load ban đầu
     refreshCartCount();
 
-    // Listen to custom events for immediate updates
-    const onCartChanged = () => refreshCartCount();
-    if (typeof window !== "undefined") {
-      window.addEventListener("cart:changed", onCartChanged);
-    }
+    // Subscribe to cart events
+    const unsubscribe = cartEvents.subscribe(() => {
+      console.log("🔔 Cart context received cart change event");
+      refreshCartCount();
+    });
 
     // Cleanup
     return () => {
-      if (typeof window !== "undefined") {
-        window.removeEventListener("cart:changed", onCartChanged);
-      }
+      unsubscribe();
     };
   }, []);
 

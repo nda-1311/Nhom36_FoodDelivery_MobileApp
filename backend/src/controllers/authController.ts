@@ -11,10 +11,10 @@
  */
 
 import { NextFunction, Request, Response } from 'express';
-import '../types/express'; // Import type extensions
 import Joi from 'joi';
 import { asyncHandler } from '../middleware/errorHandler';
 import * as authService from '../services/authService';
+import '../types/express'; // Import type extensions
 import { logger } from '../utils/logger';
 
 // ============================================
@@ -34,10 +34,18 @@ const registerSchema = Joi.object({
   phone: Joi.string()
     .pattern(/^[0-9]{10,11}$/)
     .optional()
+    .allow('', null)
     .messages({
       'string.pattern.base': 'Phone number must be 10-11 digits',
     }),
-});
+  phoneNumber: Joi.string()
+    .pattern(/^[0-9]{10,11}$/)
+    .optional()
+    .allow('', null)
+    .messages({
+      'string.pattern.base': 'Phone number must be 10-11 digits',
+    }),
+}).unknown(true); // Allow additional fields
 
 const loginSchema = Joi.object({
   email: Joi.string().email().required().messages({

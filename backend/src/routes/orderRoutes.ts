@@ -10,9 +10,13 @@
  * - GET /:id/tracking - Get order tracking history
  */
 
-import { Router } from "express";
-import * as orderController from "../controllers/orderController";
-import { authenticateToken } from "../middleware/auth";
+import { Router } from 'express';
+import * as orderController from '../controllers/orderController';
+import { authenticateToken } from '../middleware/auth';
+import {
+  cacheMiddleware,
+  invalidateCacheMiddleware,
+} from '../middleware/cacheMiddleware';
 
 const router = Router();
 
@@ -20,11 +24,39 @@ const router = Router();
 router.use(authenticateToken);
 
 // Order routes
-router.post("/", orderController.createOrder);
-router.get("/", orderController.getUserOrders);
-router.get("/:id", orderController.getOrderById);
-router.put("/:id/status", orderController.updateOrderStatus);
-router.post("/:id/cancel", orderController.cancelOrder);
-router.get("/:id/tracking", orderController.getOrderTracking);
+router.post(
+  '/',
+  invalidateCacheMiddleware({ patterns: ['orders:', 'cart:'] }),
+  orderController.createOrder
+);
+router.get(
+  '/',
+  cacheMiddleware({
+    ttl: 60,
+    keyPrefix: 'orders:list',
+    varyBy: ['userId', 'status'],
+  }),
+  orderController.getUserOrders
+);
+router.get(
+  '/:id',
+  cacheMiddleware({ ttl: 120, keyPrefix: 'orders:detail' }),
+  orderController.getOrderById
+);
+router.put(
+  '/:id/status',
+  invalidateCacheMiddleware({ patterns: ['orders:'] }),
+  orderController.updateOrderStatus
+);
+router.post(
+  '/:id/cancel',
+  invalidateCacheMiddleware({ patterns: ['orders:'] }),
+  orderController.cancelOrder
+);
+router.get(
+  '/:id/tracking',
+  cacheMiddleware({ ttl: 30, keyPrefix: 'orders:tracking' }),
+  orderController.getOrderTracking
+);
 
 export default router;

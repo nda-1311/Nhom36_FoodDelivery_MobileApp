@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import '../types/express'; // Import type extensions
 import { jwt as jwtConfig } from '../config/environment';
+import '../types/express'; // Import type extensions
 
 /**
  * Authentication Middleware
@@ -39,6 +39,12 @@ export const authMiddleware = (
 
     // Verify JWT token
     const decoded = jwt.verify(token, jwtConfig.secret) as JWTPayload;
+
+    console.log('🔐 Auth middleware - Decoded token:', {
+      userId: decoded.userId,
+      email: decoded.email,
+      role: decoded.role,
+    });
 
     // Attach user info to request
     req.user = {

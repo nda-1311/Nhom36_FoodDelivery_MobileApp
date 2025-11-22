@@ -6,6 +6,13 @@ const API_URL =
   process.env.EXPO_PUBLIC_API_URL ||
   "http://localhost:5000/api/v1";
 
+console.log("🌐 API Configuration:", {
+  apiUrl: API_URL,
+  expoConfigExtra: Constants.expoConfig?.extra?.apiUrl,
+  envVar: process.env.EXPO_PUBLIC_API_URL,
+  fallback: "http://localhost:5000/api/v1",
+});
+
 // Token storage keys
 const ACCESS_TOKEN_KEY = "@food_delivery_access_token";
 const REFRESH_TOKEN_KEY = "@food_delivery_refresh_token";
@@ -111,6 +118,8 @@ class ApiClient {
 
     const url = `${this.baseURL}${endpoint}`;
 
+    console.log(`📡 Making ${options.method || "GET"} request to: ${url}`);
+
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       ...((options.headers as Record<string, string>) || {}),
@@ -125,10 +134,14 @@ class ApiClient {
     }
 
     try {
+      console.log(`⏳ Fetching from: ${url}`);
       const response = await fetch(url, {
         ...options,
         headers,
       });
+      console.log(
+        `✅ Response status: ${response.status} ${response.statusText}`
+      );
 
       const data = await response.json();
 
@@ -157,6 +170,13 @@ class ApiClient {
 
       return data;
     } catch (error: any) {
+      console.error(`❌ API Request failed for ${endpoint}:`, error);
+      console.error("Error details:", {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+      });
+
       if (error.success === false) {
         throw error;
       }
@@ -206,9 +226,44 @@ class ApiClient {
     endpoint: string,
     params?: Record<string, any>
   ): Promise<ApiResponse<T>> {
-    const queryString = params
-      ? "?" + new URLSearchParams(params).toString()
-      : "";
+    let queryString = "";
+
+    if (params && Object.keys(params).length > 0) {
+      // Build query string manually to handle nested objects properly
+      const queryParts: string[] = [];
+
+      Object.entries(params).forEach(([key, value]) => {
+        // Skip undefined, null, empty string, and nested objects
+        if (value === undefined || value === null || value === "") {
+          return;
+        }
+
+        // Handle nested objects by flattening them
+        if (typeof value === "object" && !Array.isArray(value)) {
+          Object.entries(value).forEach(([subKey, subValue]) => {
+            if (
+              subValue !== undefined &&
+              subValue !== null &&
+              subValue !== ""
+            ) {
+              queryParts.push(
+                `${encodeURIComponent(subKey)}=${encodeURIComponent(
+                  String(subValue)
+                )}`
+              );
+            }
+          });
+        } else {
+          // Handle primitive values and arrays
+          queryParts.push(
+            `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`
+          );
+        }
+      });
+
+      queryString = queryParts.length > 0 ? "?" + queryParts.join("&") : "";
+    }
+
     return this.request<T>(`${endpoint}${queryString}`, {
       method: "GET",
     });

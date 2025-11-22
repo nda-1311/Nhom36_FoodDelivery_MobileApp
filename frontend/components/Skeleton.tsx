@@ -1,14 +1,21 @@
 import { COLORS, RADIUS, SPACING } from "@/constants/design";
 import React, { useEffect, useRef } from "react";
-import { Animated, StyleSheet, View } from "react-native";
+import { Animated, StyleSheet, View, ViewStyle } from "react-native";
 
 interface SkeletonProps {
   width?: number | string;
   height?: number;
   borderRadius?: number;
-  style?: any;
+  style?: ViewStyle;
 }
 
+/**
+ * Skeleton Loading Component
+ * Hiển thị placeholder với animation shimmer khi loading data
+ *
+ * @example
+ * <Skeleton width={100} height={100} borderRadius={50} />
+ */
 export const Skeleton: React.FC<SkeletonProps> = ({
   width = "100%",
   height = 20,
